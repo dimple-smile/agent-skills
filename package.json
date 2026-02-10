@@ -1,0 +1,27 @@
+{
+  "name": "agent-skills",
+  "version": "1.0.0",
+  "description": "一个简洁的 Agent Skills 规范说明，供 AI 阅读并按规范生成 SKILL.md 文件。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dimple-smile/agent-skills.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dimple-smile/agent-skills/issues"
+  },
+  "homepage": "https://github.com/dimple-smile/agent-skills#readme",
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}
