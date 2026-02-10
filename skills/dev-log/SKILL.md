@@ -210,95 +210,51 @@ Agent: [读取并过滤日志]
 
 ## Implementation
 
-### 服务启动流程
+### 服务启动
 
-1. **检查现有服务**
-   ```bash
-   if [ -f port.txt ]; then
-     curl -s http://localhost:$(cat port.txt) > /dev/null 2>&1
-     if [ $? -eq 0 ]; then
-       echo "服务正常，复用现有服务"
-     else
-       echo "服务异常，需要重启"
-     fi
-   fi
-   ```
+**启动命令：**
+```bash
+cd skills/dev-log && ./start.sh
+```
 
-2. **启动日志服务器**
-   ```javascript
-   const http=require('http'),fs=require('fs');
-   // 1. 检查并杀掉旧进程
-   const oldPid=fs.readFileSync('pid.txt','utf-8').trim();
-   if(oldPid){try{process.kill(parseInt(oldPid));}catch(e){}}
-   // 2. 创建服务器
-   const logs=[];
-   const server=http.createServer((req,res)=>{
-     if(req.method==='POST'){
-       let body='';
-       req.on('data',c=>body+=c);
-       req.on('end',()=>{
-         logs.push(body);
-         fs.appendFileSync('dev-logs.json',body+'\n');
-         res.end('OK');
-       });
-     }else{
-       res.end(logs.join('\n'));
-     }
-   });
-   // 3. 启动并记录
-   server.listen(0,()=>{
-     const port=server.address().port;
-     fs.writeFileSync('port.txt',port);
-     fs.writeFileSync('pid.txt',process.pid);
-     fs.writeFileSync('dev-logs.json','');
-     console.log(`日志服务: http://localhost:${port}`);
-   });
-   ```
+启动脚本会自动：
+1. 检查现有服务状态（读取 `port.txt` 并测试连接）
+2. 如果服务正常运行，则复用现有服务
+3. 如果服务异常或不存在，则启动新服务
+4. 服务启动后会记录端口到 `port.txt`，进程 ID 到 `pid.txt`
 
-3. **文件结构**
-   ```
-   ./
-   ├── pid.txt          # 服务进程 ID
-   ├── port.txt         # 服务端口
-   └── dev-logs.json    # 日志文件（JSONL 格式）
-   ```
+**文件结构：**
+```
+./skills/dev-log/
+├── start.sh         # 启动脚本（检查/启动服务）
+├── read-log.sh      # 读取日志脚本（支持过滤）
+├── server.js        # HTTP 服务器
+├── pid.txt          # 服务进程 ID
+├── port.txt         # 服务端口
+└── dev-logs.json    # 日志文件（JSONL 格式）
+```
 
-### 日志读取流程
+### 日志读取
 
-1. **生成 sessionId**
-   - AI 在内存中生成唯一 sessionId（如 `sess_abc123`）
-   - 在整个调试会话中保持此 sessionId
-   - 用于过滤日志，避免混淆不同会话的日志
+**读取所有日志：**
+```bash
+./skills/dev-log/read-log.sh
+```
 
-2. **清空日志**
-   - 新一轮调试开始时清空 `dev-logs.json`
-   - 用户明确要求时也清空
-   - 使用 `fs.writeFileSync('dev-logs.json', '')`
+**按 sessionId 过滤日志：**
+```bash
+./skills/dev-log/read-log.sh "$SESSION_ID"
+```
 
-3. **读取端口号**
-   ```bash
-   cat port.txt
-   ```
+`read-log.sh` 脚本会：
+1. 读取 `dev-logs.json` 文件
+2. 如果提供 `$SESSION_ID` 参数，则过滤出匹配该 sessionId 的日志行
+3. 将结果输出到标准输出，供 AI 读取分析
 
-4. **读取并过滤日志**
-   ```bash
-   # 读取所有日志
-   cat dev-logs.json
+### 代码生成模板
 
-   # 过滤特定 sessionId 的日志
-   grep "sessionId:'sess_abc123'" dev-logs.json
-   ```
-
-### 代码生成规则
-
-在需要调试的语句**下一行**插入 fetch 请求：
-
+**标准 fetch 请求模板：**
 ```javascript
-// 原代码
-const result = calculate(x, y);
-
-// 修改后
-const result = calculate(x, y);
 fetch('http://localhost:PORT',{
   method:'POST',
   headers:{'Content-Type':'application/json'},
@@ -311,11 +267,17 @@ fetch('http://localhost:PORT',{
 }).catch(()=>{})
 ```
 
-简化为单行：
-
+**单行简化版本：**
 ```javascript
 fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SID',time:'TIME',type:'TYPE',data:DATA})}).catch(()=>{})
 ```
+
+**模板变量说明：**
+- `PORT`: 从 `skills/dev-log/port.txt` 读取的端口号
+- `SESSION_ID`: AI 生成的会话 ID（如 `sess_abc123`）
+- `TIME`: 时间戳（如 `14:23:05.123`）
+- `TYPE`: 日志类型（如 `state`/`error`/`validation`/`request`）
+- `DATA`: 要记录的任意数据对象
 
 ### 日志格式
 
