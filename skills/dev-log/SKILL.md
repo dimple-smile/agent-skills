@@ -44,7 +44,10 @@ Agent: 我来创建一个计数器组件，并添加日志以便验证功能正�
 ```jsx
 function Counter() {
   const [count, setCount] = useState(0);
-  const increment = () => {fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_8x7k2p',time:new Date().toTimeString().split(' ')[0],type:'before-increment',data:{count}})}).catch(()=>{});setCount(c=>c+1);};
+  const increment = () => {
+    fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_8x7k2p',time:new Date().toTimeString().split(' ')[0],type:'before-increment',data:{count}})}).catch(()=>{});
+    setCount(c => c + 1);
+  };
   return <button onClick={increment}>Count: {count}</button>;
 }
 ```
