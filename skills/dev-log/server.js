@@ -17,9 +17,9 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
  * @returns {boolean} True if valid
  */
 function isValidLogEntry(log) {
-  if (!log || typeof log !== 'object') return false;
-  // Basic validation: should have at least a message or level
-  return 'message' in log || 'level' in log || 'msg' in log;
+  if (!log || typeof log !== 'object' || Array.isArray(log)) return false;
+  // Basic validation: should be a non-empty object
+  return Object.keys(log).length > 0;
 }
 
 /**
