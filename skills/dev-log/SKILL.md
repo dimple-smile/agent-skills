@@ -1,6 +1,6 @@
 ---
 name: dev-log
-description: 前端调试的默认日志方案。当 AI 生成前端代码需要调试时，自动使用此技能收集日志，让 AI 能直接查看运行时结果，无需用户手动复制控制台。
+description: 前端调试的默认日志方案。当 AI 生成前端代码需要调试或者协助排查问题时，自动使用此技能收集日志，让 AI 能自行查看运行时结果，无需用户手动复制控制台。
 version: 1.0.0
 tags:
   - debugging
@@ -44,21 +44,7 @@ Agent: 我来创建一个计数器组件，并添加日志以便验证功能正�
 ```jsx
 function Counter() {
   const [count, setCount] = useState(0);
-
-  const increment = () => {
-    fetch('http://localhost:54321',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        sessionId:'sess_8x7k2p',
-        time:new Date().toTimeString().split(' ')[0],
-        type:'before-increment',
-        data:{count}
-      })
-    }).catch(()=>{});
-    setCount(c => c + 1);
-  };
-
+  const increment = () => {fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_8x7k2p',time:new Date().toTimeString().split(' ')[0],type:'before-increment',data:{count}})}).catch(()=>{});setCount(c=>c+1);};
   return <button onClick={increment}>Count: {count}</button>;
 }
 ```
@@ -84,68 +70,23 @@ Agent: [uses dev-log skill] 启动日志服务...
 
 ```javascript
 async function fetchData(userId) {
-  fetch('http://localhost:54321',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      sessionId:'sess_a1b2c3',
-      time:new Date().toTimeString().split(' ')[0],
-      type:'fetch-start',
-      data:{userId}
-    })
-  }).catch(()=>{});
+  fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_a1b2c3',time:new Date().toTimeString().split(' ')[0],type:'fetch-start',data:{userId}})}).catch(()=>{});
 
   try {
     const response = await fetch(`/api/users/${userId}`);
-    fetch('http://localhost:54321',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        sessionId:'sess_a1b2c3',
-        time:new Date().toTimeString().split(' ')[0],
-        type:'fetch-response',
-        data:{status:response.status,ok:response.ok}
-      })
-    }).catch(()=>{});
+    fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_a1b2c3',time:new Date().toTimeString().split(' ')[0],type:'fetch-response',data:{status:response.status,ok:response.ok}})}).catch(()=>{});
 
     if (!response.ok) {
-      fetch('http://localhost:54321',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          sessionId:'sess_a1b2c3',
-          time:new Date().toTimeString().split(' ')[0],
-          type:'fetch-error',
-          data:{status:response.status}
-        })
-      }).catch(()=>{});
+      fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_a1b2c3',time:new Date().toTimeString().split(' ')[0],type:'fetch-error',data:{status:response.status}})}).catch(()=>{});
       throw new Error(`HTTP ${response.status}`);
     }
 
     const data = await response.json();
-    fetch('http://localhost:54321',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        sessionId:'sess_a1b2c3',
-        time:new Date().toTimeString().split(' ')[0],
-        type:'fetch-success',
-        data:{hasData:!!data}
-      })
-    }).catch(()=>{});
+    fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_a1b2c3',time:new Date().toTimeString().split(' ')[0],type:'fetch-success',data:{hasData:!!data}})}).catch(()=>{});
 
     return data;
   } catch (error) {
-    fetch('http://localhost:54321',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        sessionId:'sess_a1b2c3',
-        time:new Date().toTimeString().split(' ')[0],
-        type:'catch-error',
-        data:{message:error.message}
-      })
-    }).catch(()=>{});
+    fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_a1b2c3',time:new Date().toTimeString().split(' ')[0],type:'catch-error',data:{message:error.message}})}).catch(()=>{});
     throw error;
   }
 }
@@ -176,16 +117,7 @@ function validateLoginForm(form) {
   const email = form.email.value;
   const password = form.password.value;
 
-  fetch('http://localhost:54321',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      sessionId:'sess_valid9',
-      time:new Date().toTimeString().split(' ')[0],
-      type:'validate-input',
-      data:{field:'email',value:email}
-    })
-  }).catch(()=>{});
+  fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_valid9',time:new Date().toTimeString().split(' ')[0],type:'validate-input',data:{field:'email',value:email}})}).catch(()=>{});
 
   const errors = {};
 
@@ -193,29 +125,11 @@ function validateLoginForm(form) {
     errors.email = '邮箱不能为空';
   }
 
-  fetch('http://localhost:54321',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      sessionId:'sess_valid9',
-      time:new Date().toTimeString().split(' ')[0],
-      type:'validate-result',
-      data:{field:'email',valid:!!email}
-    })
-  }).catch(()=>{});
+  fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_valid9',time:new Date().toTimeString().split(' ')[0],type:'validate-result',data:{field:'email',valid:!!email}})}).catch(()=>{});
 
   // ... 更多验证
 
-  fetch('http://localhost:54321',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      sessionId:'sess_valid9',
-      time:new Date().toTimeString().split(' ')[0],
-      type:'final-result',
-      data:{errorCount:Object.keys(errors).length}
-    })
-  }).catch(()=>{});
+  fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_valid9',time:new Date().toTimeString().split(' ')[0],type:'final-result',data:{errorCount:Object.keys(errors).length}})}).catch(()=>{});
 
   return { valid: Object.keys(errors).length === 0, errors };
 }
