@@ -1,6 +1,6 @@
 ---
 name: dev-log
-description: 通过本地 HTTP 服务自动获取前端运行时日志。当 AI 需要调试前端代码、查看变量值、追踪执行流程或验证功能效果时使用。
+description: 前端调试的默认日志方案。当 AI 生成前端代码需要调试时，自动使用此技能收集日志，让 AI 能直接查看运行时结果，无需用户手动复制控制台。
 version: 1.0.0
 tags:
   - debugging
@@ -12,200 +12,216 @@ tags:
 
 将前端代码的 console.log 输出通过 HTTP 接口实时发送，让 AI 能够自动获取运行时日志，无需用户手动复制控制台内容。
 
+**核心理念：** 大多数 console.log 都是为了让 AI 查看结果，因此应该默认使用 dev-log 方式，除非是非常简单的临时调试。
+
 ## When to Use
 
-使用此技能的情况：
-- AI 生成的前端代码需要调试时
-- 需要查看运行时变量值或函数执行结果时
-- 需要追踪代码执行流程时
-- 需要验证前端逻辑是否按预期工作时
-- 用户说"操作完成了"、"你看下结果"、"好了"等提示时
+**AI 应该主动判断并使用此技能的情况：**
 
-用户操作后，AI 应该主动读取日志文件查看结果，而不是等待用户手动提供。
+1. **生成前端代码时** - 如果生成的代码可能需要调试/验证，默认使用 dev-log 收集日志
+2. **用户说"帮我调试"、"有问题"、"看看为什么"** - 需要查看运行时状态时
+3. **需要追踪异步流程** - fetch、Promise、async/await 的执行过程
+4. **需要验证逻辑** - 表单验证、状态更新、条件判断等
+5. **需要查看变量值** - 特别是动态生成或用户输入的值
+6. **用户说"操作完成了"、"你看下"、"好了"** - 提示用户已完成操作，AI 应该读取日志
+
+**不需要使用的情况：**
+- 纯静态内容生成（如 HTML 模板）
+- 非常简单的一次性验证
+- 用户明确表示不需要调试
+- 代码完全是后端的（Node.js 服务端）
 
 ## Examples
 
-### Example 1: 代码调试场景
+### Example 1: 主动启用 - AI 判断需要调试
 
 ```markdown
-User: 这个 React 组件的状态更新有问题，帮我调试一下
+User: 写一个 React 计数器组件
 
-Agent: [uses dev-log skill]
-我来帮你调试这个状态更新问题。首先让我启动日志服务，然后添加日志追踪状态变化。
+Agent: 我来创建一个计数器组件，并添加日志以便验证功能正常。
+[启动 dev-log 服务，生成 sessionId: sess_8x7k2p]
 
-[检查并启动日志服务]
-[生成 sessionId: sess_abc123]
-[清空日志文件]
-[读取端口号: 54321]
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0);
 
-现在我会在关键位置添加日志：
-```javascript
-const [count, setCount] = useState(0);
+  const increment = () => {
+    fetch('http://localhost:54321',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:'sess_8x7k2p',
+        time:new Date().toTimeString().split(' ')[0],
+        type:'before-increment',
+        data:{count}
+      })
+    }).catch(()=>{});
+    setCount(c => c + 1);
+  };
 
-// 添加日志
-fetch('http://localhost:54321',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({
-    sessionId:'sess_abc123',
-    time:'14:23:05.123',
-    type:'state',
-    data:{count,action:'before_setCount'}
-  })
-}).catch(()=>{})
-
-setCount(1);
+  return <button onClick={increment}>Count: {count}</button>;
+}
 ```
 
-请操作一下，然后告诉我完成。
+请点击按钮几次，然后告诉我结果。
 
-User: 好的，操作完成了
+User: 点了3次
 
-Agent: [读取 dev-logs.json，过滤 sessionId='sess_abc123']
+Agent: [读取日志]
 从日志看到：
-- 14:23:05.123 state: {count:0,action:'before_setCount'}
-- 14:23:06.234 state: {count:1,action:'after_setCount'}
-- 14:23:06.235 effect: useEffect triggered
+- count 从 0 → 1 → 2 → 3
+- 每次 increment 都正确执行
 
-我发现 useEffect 依赖项可能有问题...
+计数器工作正常！
 ```
 
-### Example 2: 验证功能效果
+### Example 2: 追踪异步请求
 
 ```markdown
-User: 帮我写一个表单验证，我需要确认验证逻辑是否正确
+User: 这个异步函数有时候会失败，帮我看看
 
-Agent: [uses dev-log skill]
-好的，我会添加日志来记录验证过程，确保你能看到验证结果。
+Agent: [uses dev-log skill] 启动日志服务...
 
-[启动日志服务，生成 sessionId]
-[读取端口号: 54321]
-
-这是带验证日志的表单代码：
 ```javascript
-const validateForm = (data) => {
-  const results = {};
-
-  // 邮箱验证
-  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email);
+async function fetchData(userId) {
   fetch('http://localhost:54321',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      sessionId:'sess_xyz789',
+      sessionId:'sess_a1b2c3',
       time:new Date().toTimeString().split(' ')[0],
-      type:'validation',
-      data:{field:'email',value:data.email,valid:emailValid}
+      type:'fetch-start',
+      data:{userId}
     })
   }).catch(()=>{});
-  results.email = emailValid;
 
-  // 密码验证
-  const passwordValid = data.password.length >= 8;
-  fetch('http://localhost:54321',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      sessionId:'sess_xyz789',
-      time:new Date().toTimeString().split(' ')[0],
-      type:'validation',
-      data:{field:'password',length:data.password.length,valid:passwordValid}
-    })
-  }).catch(()=>{});
-  results.password = passwordValid;
+  try {
+    const response = await fetch(`/api/users/${userId}`);
+    fetch('http://localhost:54321',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:'sess_a1b2c3',
+        time:new Date().toTimeString().split(' ')[0],
+        type:'fetch-response',
+        data:{status:response.status,ok:response.ok}
+      })
+    }).catch(()=>{});
 
-  return results;
-};
+    if (!response.ok) {
+      fetch('http://localhost:54321',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          sessionId:'sess_a1b2c3',
+          time:new Date().toTimeString().split(' ')[0],
+          type:'fetch-error',
+          data:{status:response.status}
+        })
+      }).catch(()=>{});
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    fetch('http://localhost:54321',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:'sess_a1b2c3',
+        time:new Date().toTimeString().split(' ')[0],
+        type:'fetch-success',
+        data:{hasData:!!data}
+      })
+    }).catch(()=>{});
+
+    return data;
+  } catch (error) {
+    fetch('http://localhost:54321',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        sessionId:'sess_a1b2c3',
+        time:new Date().toTimeString().split(' ')[0],
+        type:'catch-error',
+        data:{message:error.message}
+      })
+    }).catch(()=>{});
+    throw error;
+  }
+}
 ```
 
-你操作完告诉我一声，我来查看验证日志。
+操作一下，告诉我结果。
 
-User: 操作完了
+User: 还是失败
 
-Agent: [读取并过滤日志]
-日志显示验证结果：
-- 14:25:10.123 validation: {field:'email',value:'test@example.com',valid:true}
-- 14:25:10.124 validation: {field:'password',length:5,valid:false}
+Agent: [读取日志]
+日志显示：
+- fetch-start ✓
+- fetch-response {status: 404, ok: false}
+- fetch-error
 
-从日志看，密码验证失败了，因为长度只有5位，需要至少8位。需要调整验证提示...
+问题是返回 404，说明 API 端点 `/api/users/${userId}` 不存在。需要检查后端路由配置...
 ```
 
-### Example 3: 追踪异步流程
+### Example 3: 表单验证追踪
 
 ```markdown
-User: 这个数据请求的流程有问题，帮我看看
+User: 写一个登录表单的验证逻辑
 
-Agent: [uses dev-log skill]
-我来添加请求流程的日志追踪，找出问题所在。
+Agent: [启动 dev-log，生成 sessionId: sess_valid9]
 
-[启动日志服务，生成 sessionId]
-[读取端口号]
-
-这是带请求追踪的代码：
 ```javascript
-useEffect(() => {
+function validateLoginForm(form) {
+  const email = form.email.value;
+  const password = form.password.value;
+
   fetch('http://localhost:54321',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      sessionId:'sess_flow123',
+      sessionId:'sess_valid9',
       time:new Date().toTimeString().split(' ')[0],
-      type:'request',
-      data:{step:'start',url:'/api/data'}
+      type:'validate-input',
+      data:{field:'email',value:email}
     })
   }).catch(()=>{});
 
-  fetch('/api/data')
-    .then(res => {
-      fetch('http://localhost:54321',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          sessionId:'sess_flow123',
-          time:new Date().toTimeString().split(' ')[0],
-          type:'response',
-          data:{step:'received',status:res.status}
-        })
-      }).catch(()=>{});
-      return res.json();
+  const errors = {};
+
+  if (!email) {
+    errors.email = '邮箱不能为空';
+  }
+
+  fetch('http://localhost:54321',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      sessionId:'sess_valid9',
+      time:new Date().toTimeString().split(' ')[0],
+      type:'validate-result',
+      data:{field:'email',valid:!!email}
     })
-    .then(data => {
-      fetch('http://localhost:54321',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          sessionId:'sess_flow123',
-          time:new Date().toTimeString().split(' ')[0],
-          type:'parsed',
-          data:{step:'parsed',success:true}
-        })
-      }).catch(()=>{});
-      setData(data);
+  }).catch(()=>{});
+
+  // ... 更多验证
+
+  fetch('http://localhost:54321',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      sessionId:'sess_valid9',
+      time:new Date().toTimeString().split(' ')[0],
+      type:'final-result',
+      data:{errorCount:Object.keys(errors).length}
     })
-    .catch(err => {
-      fetch('http://localhost:54321',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          sessionId:'sess_flow123',
-          time:new Date().toTimeString().split(' ')[0],
-          type:'error',
-          data:{step:'error',message:err.message}
-        })
-      }).catch(()=>{});
-    });
-}, []);
+  }).catch(()=>{});
+
+  return { valid: Object.keys(errors).length === 0, errors };
+}
 ```
 
-User: 完成
-
-Agent: [读取并过滤日志]
-日志显示请求链路：
-- 14:30:01.100 request: {step:'start',url:'/api/data'}
-- 14:30:01.450 response: {step:'received',status:200}
-- 14:30:01.500 error: {step:'error',message:'Unexpected token < in JSON'}
-
-问题找到了！API 返回状态 200，但响应不是 JSON 格式。可能是返回了 HTML 错误页面...
+测试后告诉我结果，我会根据日志判断验证逻辑是否正确。
 ```
 
 ## Implementation
@@ -228,10 +244,10 @@ cd skills/dev-log && ./start.sh
 ./skills/dev-log/
 ├── start.sh         # 启动脚本（检查/启动服务）
 ├── read-log.sh      # 读取日志脚本（支持过滤）
-├── server.js        # HTTP 服务器
+├── server.js        # HTTP 服务器（ESM 模块）
 ├── pid.txt          # 服务进程 ID
 ├── port.txt         # 服务端口
-└── dev-logs.json    # 日志文件（JSONL 格式）
+└── dev-logs.json    # 日志文件（JSON 格式）
 ```
 
 ### 日志读取
@@ -245,11 +261,6 @@ cd skills/dev-log && ./start.sh
 ```bash
 ./skills/dev-log/read-log.sh "$SESSION_ID"
 ```
-
-`read-log.sh` 脚本会：
-1. 读取 `dev-logs.json` 文件
-2. 如果提供 `$SESSION_ID` 参数，则过滤出匹配该 sessionId 的日志行
-3. 将结果输出到标准输出，供 AI 读取分析
 
 ### 代码生成模板
 
@@ -274,52 +285,35 @@ fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'applicatio
 
 **模板变量说明：**
 - `PORT`: 从 `skills/dev-log/port.txt` 读取的端口号
-- `SESSION_ID`: AI 生成的会话 ID（如 `sess_abc123`）
-- `TIME`: 时间戳（如 `14:23:05.123`）
-- `TYPE`: 日志类型（如 `state`/`error`/`validation`/`request`）
+- `SESSION_ID`: AI 生成的会话 ID（格式：`sess_` + 8位随机字符）
+- `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
+- `TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`fetch-start` 等）
 - `DATA`: 要记录的任意数据对象
-
-### 日志格式
-
-每行一个 JSON（JSONL 格式）：
-
-```json
-{"sessionId":"abc123","time":"14:23:05.123","type":"state","data":{"count":0}}
-```
-
-字段说明：
-- `sessionId`: 会话 ID，AI 内存中生成和记忆
-- `time`: 时间戳，格式 HH:mm:ss.SSS
-- `type`: 日志类型标签（如 state/user/error/validation/request/response）
-- `data`: 日志数据，任意可序列化内容
 
 ### 完整使用流程
 
-1. AI 检测到需要调试 → 启动 dev-log 技能
-2. AI 检查/启动服务
-   - 读取 `port.txt`，尝试 curl 测试
-   - 如果失败，启动新服务
-3. AI 生成 sessionId（内存中）
-4. AI 清空日志（新一轮调试）
-5. AI 读取端口号
-6. AI 生成带日志的代码
-7. 用户执行操作
-8. 用户告知"完成"
-9. AI 读取 `dev-logs.json`，按 sessionId 过滤
-10. AI 分析日志并给出结论
+1. **AI 判断需要调试** → 自动启动 dev-log 技能
+2. **检查/启动服务** → 测试现有服务或启动新服务
+3. **生成 sessionId** → 在内存中记住，格式 `sess_xxxxxxxx`
+4. **清空日志** → 新一轮调试开始时
+5. **读取端口号** → 从 `port.txt` 获取
+6. **生成带日志的代码** → 在关键位置插入 fetch 语句
+7. **提示用户操作** → "请操作一下，然后告诉我结果"
+8. **用户告知完成** → "好了"、"操作完成了"
+9. **读取并分析日志** → 按 sessionId 过滤，分析结果
 
 ### 多会话隔离
 
 - 每个 AI 会话有独立的 sessionId（内存中）
 - 日志都写入同一个 `dev-logs.json`
 - AI 读取日志时用自己的 sessionId 过滤
-- 如果 AI "忘记" sessionId，根据时间戳推断最近的日志
+- 格式：`{"sessionId":"sess_abc123","time":"14:23:05","type":"state","data":{...}}`
 
 ### 注意事项
 
-1. **端口冲突**: 使用 `server.listen(0)` 获取随机可用端口，避免冲突
-2. **CORS**: 本地开发通常无跨域问题
-3. **性能**: 生产环境务必移除此调试代码
-4. **安全性**: 仅用于本地开发，不要暴露到公网
-5. **错误处理**: fetch 请求必须加 `.catch(()=>{})` 避免阻塞
-6. **进程管理**: 启动前检查 `pid.txt`，如果存在则先关闭旧进程
+1. **默认使用** - 生成前端代码时默认考虑使用 dev-log，除非非常简单
+2. **清理时机** - 新一轮调试开始时清空日志
+3. **生产环境** - 务必移除调试代码
+4. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑
+5. **单行插入** - 日志代码在用户代码的下一行插入，保持原代码结构
+6. **本地开发** - 仅用于本地开发，不要暴露到公网
