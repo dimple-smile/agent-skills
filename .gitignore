@@ -1,0 +1,8 @@
+node_modules/
+*.log
+.DS_Store
+
+# dev-log runtime files
+skills/dev-log/pid.txt
+skills/dev-log/port.txt
+skills/dev-log/dev-logs.json
