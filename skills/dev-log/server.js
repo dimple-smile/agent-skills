@@ -6,6 +6,7 @@ const path = require('path');
 
 const LOG_FILE = path.join(__dirname, 'dev-logs.json');
 const PID_FILE = path.join(__dirname, 'pid.txt');
+const PORT_FILE = path.join(__dirname, 'port.txt');
 
 /**
  * Kill old process if pid.txt exists and process is running
@@ -84,8 +85,9 @@ function startServer() {
     const port = server.address().port;
     const pid = process.pid;
 
-    // Save port and pid
-    fs.writeFileSync(PID_FILE, `${pid}\n${port}`);
+    // Save port and pid separately
+    fs.writeFileSync(PID_FILE, String(pid));
+    fs.writeFileSync(PORT_FILE, String(port));
     console.log(`Dev-log server running on port ${port}`);
     console.log(`PID: ${pid}`);
     console.log(`Log file: ${LOG_FILE}`);
