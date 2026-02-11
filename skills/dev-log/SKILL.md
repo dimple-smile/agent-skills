@@ -1,6 +1,6 @@
 ---
 name: dev-log
-description: 前端调试的默认日志方案。当 AI 生成前端代码需要调试或者协助排查问题时，自动使用此技能收集日志，让 AI 能自行查看运行时结果，无需用户手动复制控制台。
+description: AI 调试协作方案。将 console.log 转为 HTTP 请求收集日志，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。支持 Claude Code、OpenCode、Cursor。
 version: 1.0.0
 tags:
   - debugging
