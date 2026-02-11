@@ -1,8 +1,8 @@
 # Agent Skills
 
-dimple-smile 的 AI 编程代理技能集合。技能是打包的指令和脚本，用于扩展 AI 代理的能力。
+dimple-smile 的 AI 编程代理技能集合，支持 Claude Code、OpenCode、Cursor 等主流 AI 工具。
 
-技能遵循 [Agent Skills](https://agentskills.io/) 规范。
+技能是打包的指令和脚本，用于扩展 AI 代理的能力，遵循 [Agent Skills](https://agentskills.io/) 规范。
 
 ## 可用技能
 
@@ -45,9 +45,21 @@ npx skills add dimple-smile/agent-skills
 
 > **注意：** 安装后需要重启 Claude Code 或 OpenCode 终端窗口
 
+## 工作流预览
+
+使用 dev-log 的完整协作流程：
+
+1. **提出问题** - 跟 agent 说「帮我看看 xxx 问题，需要收集处理过程日志来深入理解」
+2. **自动埋点** - agent 自动调用 dev-log 技能，在关心的核心处理位置写入日志收集语句
+3. **等待操作** - agent 告知「已在关键位置添加日志语句，等待你来操作」
+4. **完成操作** - 使用者操作完成后，跟 agent 说「我已操作完成」
+5. **自动分析** - agent 自行查看日志数据，分析问题根因
+
+整个过程无需截图或复制日志，AI 能够完全自主完成调试分析。
+
 ## 使用示例
 
-安装后技能自动可用：
+安装后技能自动可用，支持 Claude Code、OpenCode、Cursor 等主流 AI 工具：
 
 ```
 写一个 React 计数器组件
