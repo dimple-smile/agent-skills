@@ -7,7 +7,7 @@ dimple-smile 的 AI 编程代理技能集合。技能是打包的指令和脚本
 ## 安装
 
 ```bash
-npx add-skill dimple-smile/agent-skills
+npx skills add dimple-smile/agent-skills
 ```
 
 ## 可用技能
