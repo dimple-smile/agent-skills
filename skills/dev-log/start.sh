@@ -11,7 +11,7 @@ cd "$SCRIPT_DIR"
 # Files
 PORT_FILE="$SCRIPT_DIR/port.txt"
 PID_FILE="$SCRIPT_DIR/pid.txt"
-SERVER_SCRIPT="$SCRIPT_DIR/server.js"
+SERVER_SCRIPT="$SCRIPT_DIR/server.cjs"
 
 # Colors for output
 RED='\033[0;31m'
@@ -81,6 +81,22 @@ kill_old_process() {
     fi
 }
 
+# Wait for service to be healthy
+wait_for_healthy() {
+    local port="$1"
+    local max_attempts=10
+    local attempt=1
+
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$port/health" 2>/dev/null | grep -q "200"; then
+            return 0
+        fi
+        sleep 0.5
+        attempt=$((attempt + 1))
+    done
+    return 1
+}
+
 # Start the service
 start_service() {
     log_info "Starting dev-log service..."
@@ -108,13 +124,21 @@ start_service() {
     sleep 1
 
     # Check if port file was created
-    if [ -f "$PORT_FILE" ]; then
-        NEW_PORT=$(cat "$PORT_FILE")
+    if [ ! -f "$PORT_FILE" ]; then
+        log_error "Failed to start service - port.txt not created"
+        return 1
+    fi
+
+    NEW_PORT=$(cat "$PORT_FILE")
+
+    # Wait for service to be healthy
+    log_info "Waiting for service to be ready..."
+    if wait_for_healthy "$NEW_PORT"; then
         log_info "Service started successfully on port $NEW_PORT"
         echo "$NEW_PORT"
         return 0
     else
-        log_error "Failed to start service - port.txt not created"
+        log_error "Service started but health check failed"
         return 1
     fi
 }

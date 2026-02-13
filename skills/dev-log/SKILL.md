@@ -45,7 +45,7 @@ Agent: 我来创建一个计数器组件，并添加日志以便验证功能正�
 function Counter() {
   const [count, setCount] = useState(0);
   const increment = () => {
-    fetch('http://localhost:54321',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_8x7k2p',time:new Date().toTimeString().split(' ')[0],type:'before-increment',data:{count}})}).catch(()=>{});
+    fetch('http://localhost:54321/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'sess_8x7k2p',time:new Date().toTimeString().split(' ')[0],type:'before-increment',data:{count}})}).catch(()=>{});
     setCount(c => c + 1);
   };
   return <button onClick={increment}>Count: {count}</button>;
@@ -161,7 +161,7 @@ cd skills/dev-log && ./start.sh
 ./skills/dev-log/
 ├── start.sh         # 启动脚本（检查/启动服务）
 ├── read-log.sh      # 读取日志脚本（支持过滤）
-├── server.js        # HTTP 服务器（ESM 模块）
+├── server.cjs       # HTTP 服务器（CommonJS 模块）
 ├── pid.txt          # 服务进程 ID
 ├── port.txt         # 服务端口
 └── dev-logs.json    # 日志文件（JSON 格式）
@@ -181,7 +181,7 @@ cd skills/dev-log && ./start.sh
 
 ### 代码生成模板
 
-**标准 fetch 请求模板：**
+**标准 fetch 请求模板（根路径即可，无需 /logs）：**
 ```javascript
 fetch('http://localhost:PORT',{
   method:'POST',
@@ -206,6 +206,12 @@ fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'applicatio
 - `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
 - `TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`fetch-start` 等）
 - `DATA`: 要记录的任意数据对象
+
+**API 端点说明：**
+- `GET /` - 查看服务运行状态
+- `POST /` 或 `POST /logs` - 提交日志（两者等价，用根路径更简单）
+- `GET /logs` - 获取所有日志
+- `GET /health` - 健康检查（启动时自动测试）
 
 ### 完整使用流程
 
