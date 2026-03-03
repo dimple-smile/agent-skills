@@ -1,15 +1,46 @@
 #!/usr/bin/env node
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const selfsigned = require('selfsigned');
+const localtunnel = require('localtunnel');
 
 const LOG_FILE = path.join(__dirname, 'dev-logs.json');
 const PID_FILE = path.join(__dirname, 'pid.txt');
 const PORT_FILE = path.join(__dirname, 'port.txt');
+const HTTPS_PORT_FILE = path.join(__dirname, 'https-port.txt');
+const TUNNEL_URL_FILE = path.join(__dirname, 'tunnel-url.txt');
 
 // Maximum request body size (10MB)
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
+
+// Store addresses for output
+let addresses = {
+  local: null,
+  network: null,
+  https: null,
+  tunnel: null
+};
+
+/**
+ * Get local network IP address
+ * @returns {string|null} Local IP address or null
+ */
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Skip internal and non-IPv4 addresses
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return null;
+}
 
 /**
  * Validate log entry structure
@@ -18,12 +49,11 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
  */
 function isValidLogEntry(log) {
   if (!log || typeof log !== 'object' || Array.isArray(log)) return false;
-  // Basic validation: should be a non-empty object
   return Object.keys(log).length > 0;
 }
 
 /**
- * Safely read logs from file, avoiding race conditions
+ * Safely read logs from file
  * @returns {Array} Array of log entries
  */
 function readLogs() {
@@ -31,7 +61,6 @@ function readLogs() {
     const data = fs.readFileSync(LOG_FILE, 'utf-8');
     return JSON.parse(data);
   } catch (e) {
-    // File doesn't exist or is invalid JSON
     return [];
   }
 }
@@ -77,7 +106,6 @@ function handlePostLogs(req, res) {
       const logs = JSON.parse(body);
       const newLogs = Array.isArray(logs) ? logs : [logs];
 
-      // Validate log entries
       for (const log of newLogs) {
         if (!isValidLogEntry(log)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -86,7 +114,6 @@ function handlePostLogs(req, res) {
         }
       }
 
-      // Append to log file (atomic write)
       const existingLogs = readLogs();
       fs.writeFileSync(LOG_FILE, JSON.stringify([...existingLogs, ...newLogs], null, 2));
 
@@ -121,32 +148,35 @@ function killOldProcess() {
 /**
  * Self-test the server after startup
  */
-function selfTest(port) {
+function selfTest(port, useHttps = false) {
   return new Promise((resolve) => {
-    const req = http.request({
+    const lib = useHttps ? https : http;
+    const req = lib.request({
       hostname: 'localhost',
       port: port,
       path: '/health',
       method: 'GET',
-      timeout: 2000
+      timeout: 2000,
+      // For HTTPS, allow self-signed certs
+      rejectUnauthorized: false
     }, (res) => {
       if (res.statusCode === 200) {
-        console.log('Self-test passed: server is healthy');
+        console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test passed`);
         resolve(true);
       } else {
-        console.log(`Self-test failed: status ${res.statusCode}`);
+        console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: status ${res.statusCode}`);
         resolve(false);
       }
     });
 
     req.on('error', (e) => {
-      console.log(`Self-test failed: ${e.message}`);
+      console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: ${e.message}`);
       resolve(false);
     });
 
     req.on('timeout', () => {
       req.destroy();
-      console.log('Self-test failed: timeout');
+      console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: timeout`);
       resolve(false);
     });
 
@@ -159,101 +189,237 @@ function selfTest(port) {
  */
 function createServer() {
   const server = http.createServer((req, res) => {
-    // Add CORS headers to all responses
-    addCorsHeaders(res);
-
-    // Handle OPTIONS preflight requests
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200);
-      res.end();
-      return;
-    }
-
-    const url = req.url.split('?')[0]; // Remove query string
-
-    // Health check endpoint
-    if (req.method === 'GET' && url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
-      return;
-    }
-
-    // POST to / or /logs - both accept logs (root path for convenience)
-    if (req.method === 'POST' && (url === '/' || url === '/logs')) {
-      handlePostLogs(req, res);
-      return;
-    }
-
-    // GET / - show running status
-    if (req.method === 'GET' && url === '/') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        name: 'dev-log',
-        status: 'running',
-        message: 'Dev-log server is running. POST logs to / or /logs',
-        endpoints: {
-          'POST /': 'Submit logs',
-          'POST /logs': 'Submit logs (alternative)',
-          'GET /logs': 'Get all logs',
-          'GET /health': 'Health check'
-        }
-      }));
-      return;
-    }
-
-    // GET logs
-    if (req.method === 'GET' && url === '/logs') {
-      const logs = readLogs();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(logs));
-      return;
-    }
-
-    res.writeHead(404);
-    res.end('Not Found');
+    handleRequest(req, res);
   });
   return server;
 }
 
 /**
- * Start the server on a random port
+ * Handle incoming request
  */
-async function startServer() {
+function handleRequest(req, res) {
+  addCorsHeaders(res);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
+  const url = req.url.split('?')[0];
+
+  // Health check endpoint
+  if (req.method === 'GET' && url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+    return;
+  }
+
+  // POST to / or /logs
+  if (req.method === 'POST' && (url === '/' || url === '/logs')) {
+    handlePostLogs(req, res);
+    return;
+  }
+
+  // GET / - show running status with addresses
+  if (req.method === 'GET' && url === '/') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      name: 'dev-log',
+      status: 'running',
+      message: 'Dev-log server is running.',
+      addresses: addresses,
+      endpoints: {
+        'POST /': 'Submit logs',
+        'POST /logs': 'Submit logs (alternative)',
+        'GET /logs': 'Get all logs',
+        'GET /health': 'Health check'
+      }
+    }));
+    return;
+  }
+
+  // GET logs
+  if (req.method === 'GET' && url === '/logs') {
+    const logs = readLogs();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(logs));
+    return;
+  }
+
+  res.writeHead(404);
+  res.end('Not Found');
+}
+
+/**
+ * Generate self-signed HTTPS certificate
+ */
+function generateHttpsCert() {
+  console.log('Generating HTTPS certificate...');
+  const { private: key, cert } = selfsigned.generate(
+    [{ name: 'commonName', value: 'localhost' }],
+    { days: 365, keySize: 2048 }
+  );
+  return { key, cert };
+}
+
+/**
+ * Start localtunnel for remote access
+ */
+async function startTunnel(port) {
+  try {
+    console.log('Starting tunnel...');
+    const tunnel = await localtunnel({ port });
+    console.log(`Tunnel started: ${tunnel.url}`);
+
+    // Save tunnel URL
+    fs.writeFileSync(TUNNEL_URL_FILE, tunnel.url);
+    addresses.tunnel = tunnel.url;
+
+    tunnel.on('close', () => {
+      console.log('Tunnel closed');
+      addresses.tunnel = null;
+      if (fs.existsSync(TUNNEL_URL_FILE)) {
+        fs.unlinkSync(TUNNEL_URL_FILE);
+      }
+    });
+
+    return tunnel.url;
+  } catch (e) {
+    console.log(`Failed to start tunnel: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Print startup info
+ */
+function printStartupInfo() {
+  console.log('\n========================================');
+  console.log('Dev-log server is running');
+  console.log('========================================');
+  console.log('\nAvailable addresses:');
+  if (addresses.local) {
+    console.log(`  Local:   http://localhost:${addresses.local}`);
+  }
+  if (addresses.network) {
+    console.log(`  Network: http://${addresses.network}`);
+  }
+  if (addresses.https) {
+    console.log(`  HTTPS:   https://localhost:${addresses.https}`);
+  }
+  if (addresses.tunnel) {
+    console.log(`  Tunnel:  ${addresses.tunnel}`);
+  }
+  console.log('\nNote: HTTPS uses self-signed certificate.');
+  console.log('      First visit will show a security warning - click "Continue" to proceed.');
+  console.log('========================================\n');
+}
+
+/**
+ * Start the servers
+ */
+async function startServer(options = {}) {
+  const { enableHttps = true, enableTunnel = false } = options;
+
   // Clear log file
   if (fs.existsSync(LOG_FILE)) {
     fs.unlinkSync(LOG_FILE);
   }
 
-  const server = createServer();
-  server.listen(0, async () => {
-    const port = server.address().port;
-    const pid = process.pid;
-
-    // Save port and pid separately
-    fs.writeFileSync(PID_FILE, String(pid));
-    fs.writeFileSync(PORT_FILE, String(port));
-    console.log(`Dev-log server running on port ${port}`);
-    console.log(`PID: ${pid}`);
-    console.log(`Log file: ${LOG_FILE}`);
-
-    // Run self-test
-    const healthy = await selfTest(port);
-    if (!healthy) {
-      console.error('Server self-test failed, exiting...');
-      process.exit(1);
-    }
+  // Clear old port files
+  [PORT_FILE, HTTPS_PORT_FILE, TUNNEL_URL_FILE].forEach(f => {
+    if (fs.existsSync(f)) fs.unlinkSync(f);
   });
 
-  server.on('error', (err) => {
+  // Get local IP
+  const localIP = getLocalIP();
+
+  // Start HTTP server
+  const httpServer = createServer();
+
+  await new Promise((resolve) => {
+    httpServer.listen(0, async () => {
+      const httpPort = httpServer.address().port;
+      const pid = process.pid;
+
+      fs.writeFileSync(PID_FILE, String(pid));
+      fs.writeFileSync(PORT_FILE, String(httpPort));
+
+      addresses.local = httpPort;
+      if (localIP) {
+        addresses.network = `${localIP}:${httpPort}`;
+      }
+
+      console.log(`HTTP server on port ${httpPort}`);
+      console.log(`PID: ${pid}`);
+
+      const httpHealthy = await selfTest(httpPort);
+      if (!httpHealthy) {
+        console.error('HTTP server self-test failed');
+        process.exit(1);
+      }
+
+      resolve();
+    });
+  });
+
+  // Start HTTPS server
+  if (enableHttps) {
+    const { key, cert } = generateHttpsCert();
+    const httpsServer = https.createServer({ key, cert }, (req, res) => {
+      handleRequest(req, res);
+    });
+
+    await new Promise((resolve) => {
+      httpsServer.listen(0, async () => {
+        const httpsPort = httpsServer.address().port;
+        fs.writeFileSync(HTTPS_PORT_FILE, String(httpsPort));
+        addresses.https = httpsPort;
+
+        console.log(`HTTPS server on port ${httpsPort}`);
+
+        const httpsHealthy = await selfTest(httpsPort, true);
+        if (!httpsHealthy) {
+          console.log('HTTPS server self-test failed (continuing anyway)');
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  // Start tunnel if requested
+  if (enableTunnel) {
+    const httpPort = addresses.local;
+    await startTunnel(httpPort);
+  }
+
+  // Print startup info
+  printStartupInfo();
+
+  httpServer.on('error', (err) => {
     console.error('Server error:', err);
     process.exit(1);
   });
 }
 
+// Parse command line args
+const args = process.argv.slice(2);
+const enableTunnel = args.includes('--tunnel') || args.includes('-t');
+
 // Start server if this file is run directly
 if (require.main === module) {
   killOldProcess();
-  startServer();
+  startServer({ enableHttps: true, enableTunnel });
 }
 
-module.exports = { killOldProcess, createServer, startServer, selfTest };
+module.exports = {
+  killOldProcess,
+  createServer,
+  startServer,
+  selfTest,
+  getLocalIP,
+  generateHttpsCert,
+  startTunnel
+};

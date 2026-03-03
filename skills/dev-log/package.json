@@ -1,0 +1,28 @@
+{
+  "name": "@dimple-smile/dev-log",
+  "version": "1.0.0",
+  "description": "AI debugging collaboration - collect console.log via HTTP requests",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "start:tunnel": "node server.cjs --tunnel",
+    "build": "esbuild server.cjs --bundle --platform=node --outfile=dist/server.cjs --format=cjs",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "debugging",
+    "frontend",
+    "developer-tools",
+    "ai",
+    "agent-skills"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "localtunnel": "^2.0.2",
+    "selfsigned": "^2.4.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "vitest": "^4.0.18"
+  }
+}

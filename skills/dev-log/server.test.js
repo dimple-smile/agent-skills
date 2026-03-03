@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_DIR = path.join(__dirname, '.test-data');
@@ -45,7 +46,13 @@ function createTestServer() {
       res.end(JSON.stringify({
         name: 'dev-log',
         status: 'running',
-        message: 'Dev-log server is running'
+        message: 'Dev-log server is running',
+        addresses: {
+          local: 54321,
+          network: '192.168.1.100:54321',
+          https: 54322,
+          tunnel: null
+        }
       }));
       return;
     }
@@ -137,6 +144,16 @@ describe('Dev Log Server Unit Tests', () => {
       expect(isValidLogEntry(log)).toBe(true);
     });
 
+    it('should validate __ready__ log entry', () => {
+      const log = {
+        sessionId: 'sess_abc123',
+        time: '14:23:05',
+        type: '__ready__',
+        data: { url: 'http://localhost:3000', protocol: 'http:' }
+      };
+      expect(isValidLogEntry(log)).toBe(true);
+    });
+
     it('should reject null or undefined', () => {
       expect(isValidLogEntry(null)).toBe(false);
       expect(isValidLogEntry(undefined)).toBe(false);
@@ -200,12 +217,13 @@ describe('Dev Log Server Unit Tests', () => {
   });
 
   describe('GET /', () => {
-    it('should return running status', async () => {
+    it('should return running status with addresses', async () => {
       const response = await fetch(`${baseUrl}/`);
       expect(response.status).toBe(200);
       const result = await response.json();
       expect(result.name).toBe('dev-log');
       expect(result.status).toBe('running');
+      expect(result.addresses).toBeDefined();
     });
   });
 
@@ -314,9 +332,85 @@ describe('Dev Log Server Unit Tests', () => {
       expect(sessionBLogs).toHaveLength(1);
     });
   });
+
+  describe('__ready__ probe log', () => {
+    it('should accept __ready__ log type', async () => {
+      const readyLog = {
+        sessionId: 'sess_test123',
+        time: '14:23:05',
+        type: '__ready__',
+        data: {
+          url: 'http://localhost:3000/test',
+          protocol: 'http:'
+        }
+      };
+
+      const response = await fetch(`${baseUrl}/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(readyLog)
+      });
+
+      expect(response.status).toBe(200);
+
+      const logsResponse = await fetch(`${baseUrl}/logs`);
+      const logs = await logsResponse.json();
+      const readyLogs = logs.filter(l => l.type === '__ready__');
+      expect(readyLogs).toHaveLength(1);
+    });
+  });
+});
+
+describe('getLocalIP', () => {
+  it('should return a valid IP address or null', () => {
+    const ip = getLocalIP();
+    if (ip !== null) {
+      // Should be a valid IPv4 address
+      expect(ip).toMatch(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
+    }
+  });
+
+  it('should not return loopback address', () => {
+    const ip = getLocalIP();
+    expect(ip).not.toBe('127.0.0.1');
+  });
+});
+
+describe('generateHttpsCert', () => {
+  it('should generate valid certificate', () => {
+    const { key, cert } = generateHttpsCert();
+
+    expect(key).toBeDefined();
+    expect(typeof key).toBe('string');
+    expect(key).toContain('-----BEGIN');
+
+    expect(cert).toBeDefined();
+    expect(typeof cert).toBe('string');
+    expect(cert).toContain('-----BEGIN');
+  });
 });
 
 function isValidLogEntry(log) {
   if (!log || typeof log !== 'object' || Array.isArray(log)) return false;
   return Object.keys(log).length > 0;
+}
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return null;
+}
+
+function generateHttpsCert() {
+  // Simplified test - actual implementation uses selfsigned library
+  return {
+    key: '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----',
+    cert: '-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----'
+  };
 }

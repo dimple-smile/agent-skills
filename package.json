@@ -2,12 +2,10 @@
   "name": "agent-skills",
   "version": "1.0.0",
   "description": "dimple-smile's agent skills",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
   "scripts": {
-    "test": "vitest run"
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
   },
   "repository": {
     "type": "git",
@@ -16,12 +14,14 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/dimple-smile/agent-skills/issues"
   },
   "homepage": "https://github.com/dimple-smile/agent-skills#readme",
-  "devDependencies": {
-    "vitest": "^4.0.18"
-  }
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  },
+  "packageManager": "pnpm@9.15.4"
 }
