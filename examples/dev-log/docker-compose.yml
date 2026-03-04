@@ -1,19 +1,19 @@
 # Dev-log 多语言测试
 #
 # 使用方式：
-# 1. 先启动 dev-log 服务: cd ../skills/dev-log && node dist/index.cjs
+# 1. 先启动 dev-log 服务: cd ../../skills/dev-log && node dist/index.cjs
 # 2. 查看服务输出的端口号，设置为环境变量:
 #    export DEV_LOG_PORT=54321
-# 3. 运行所有测试: docker-compose up --build
-# 4. 运行单个测试: docker-compose up --build python
+# 3. 运行所有测试: docker compose up --build
+# 4. 运行单个测试: docker compose up --build python
 
 services:
   # JavaScript (Node.js)
   javascript:
     image: node:20-alpine
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: node test.js
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -25,8 +25,8 @@ services:
   typescript:
     image: node:20-alpine
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: sh -c "npm install -g tsx && tsx test.ts"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -38,8 +38,8 @@ services:
   python:
     image: python:3.12-slim
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: python test.py
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -51,8 +51,8 @@ services:
   go:
     image: golang:1.22-alpine
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: go run test.go
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -64,8 +64,8 @@ services:
   rust:
     image: rust:1.75-slim
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: sh -c "cargo init --name test 2>/dev/null || true && echo 'reqwest = { version = \"0.11\", features = [\"blocking\", \"json\"] }' >> Cargo.toml && echo 'serde_json = \"1.0\"' >> Cargo.toml && echo 'chrono = \"0.4\"' >> Cargo.toml && cargo run"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -77,9 +77,9 @@ services:
   java:
     image: eclipse-temurin:21-jdk
     volumes:
-      - ./src./src
-    working_dir:./src
-    command: sh -c "mkdir -p src && mv Test.java src/Test.java && javac src/Test.java && java -cp src Test"
+      - ./src:/src
+    working_dir: /src
+    command: sh -c "javac Test.java && java Test"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
       - HOST=host.docker.internal
@@ -90,8 +90,8 @@ services:
   cpp:
     image: gcc:13
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: sh -c "apt-get update && apt-get install -y libcurl4-openssl-dev && g++ -std=c++17 -o test test.cpp -lcurl && ./test"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -103,8 +103,8 @@ services:
   csharp:
     image: mcr.microsoft.com/dotnet/sdk:8.0
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: sh -c "dotnet new console --force && cp Test.cs Program.cs && dotnet run"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -116,8 +116,8 @@ services:
   php:
     image: php:8.2-cli
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: php test.php
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -129,8 +129,8 @@ services:
   ruby:
     image: ruby:3.3-alpine
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: ruby test.rb
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -142,8 +142,8 @@ services:
   kotlin:
     image: zenika/kotlin:jdk21
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: sh -c "kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -155,8 +155,8 @@ services:
   swift:
     image: swift:5.9
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: swift test.swift
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
@@ -168,8 +168,8 @@ services:
   dart:
     image: dart:stable
     volumes:
-      - ./src./src
-    working_dir:./src
+      - ./src:/src
+    working_dir: /src
     command: dart run test.dart
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
