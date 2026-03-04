@@ -163,6 +163,74 @@ await http.post(
 );
 ```
 
+### C++
+
+```cpp
+#include <curl/curl.h>
+CURL* curl = curl_easy_init();
+curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:PORT");
+curl_easy_setopt(curl, CURLOPT_POST, 1L);
+curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}");
+struct curl_slist* headers = curl_slist_append(NULL, "Content-Type: application/json");
+curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+curl_easy_perform(curl);
+curl_easy_cleanup(curl);
+```
+
+### Rust
+
+```rust
+use reqwest::blocking::Client;
+let client = Client::new();
+let body = serde_json::json!({"sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA});
+client.post("http://localhost:PORT").json(&body).send();
+```
+
+### Java
+
+```java
+import java.net.*;
+import java.net.http.*;
+var client = HttpClient.newHttpClient();
+var body = "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}";
+var request = HttpRequest.newBuilder()
+    .uri(URI.create("http://localhost:PORT"))
+    .header("Content-Type", "application/json")
+    .POST(HttpRequest.BodyPublishers.ofString(body))
+    .build();
+client.send(request, HttpResponse.BodyHandlers.ofString());
+```
+
+### C#
+
+```csharp
+using System.Net.Http;
+using System.Text.Json;
+var client = new HttpClient();
+var body = JsonSerializer.Serialize(new { sessionId = "SESSION_ID", time = "TIME", type = "LOG_TYPE", data = DATA });
+await client.PostAsync("http://localhost:PORT", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+```
+
+### PHP
+
+```php
+$ch = curl_init('http://localhost:PORT');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['sessionId'=>'SESSION_ID','time'=>'TIME','type'=>'LOG_TYPE','data'=>DATA]));
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_exec($ch);
+curl_close($ch);
+```
+
+### Ruby
+
+```ruby
+require 'net/http'
+require 'json'
+uri = URI('http://localhost:PORT')
+Net::HTTP.post(uri, {sessionId: 'SESSION_ID', time: 'TIME', type: 'LOG_TYPE', data: DATA}.to_json, 'Content-Type' => 'application/json')
+```
+
 ## 模板变量说明
 
 - `PORT`: 从服务启动输出中获取
