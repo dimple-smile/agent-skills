@@ -38,17 +38,11 @@ tags:
 cd skills/dev-log && ./start.sh
 ```
 
-**带内网穿透启动：**
-```bash
-cd skills/dev-log && node server.cjs --tunnel
-```
-
 启动脚本会自动：
 1. 检查现有服务状态（读取 `port.txt` 并测试连接）
 2. 如果服务正常运行，则复用现有服务
 3. 如果服务异常或不存在，则启动新服务
-4. 同时启动 HTTP 和 HTTPS 服务
-5. 可选启动内网穿透（`--tunnel` 参数）
+4. 同时启动 HTTP 服务和内网穿透
 
 **启动输出示例：**
 ```
@@ -59,11 +53,12 @@ Dev-log server is running
 Available addresses:
   Local:   http://localhost:54321
   Network: http://192.168.1.100:54321
-  HTTPS:   https://localhost:54322
   Tunnel:  https://abc123.loca.lt
 
-Note: HTTPS uses self-signed certificate.
-      First visit will show a security warning - click "Continue" to proceed.
+Usage:
+  - Local HTTP page: use Local address
+  - Mobile (same WiFi): use Network address
+  - HTTPS page / Remote: use Tunnel address
 ========================================
 ```
 
@@ -76,20 +71,19 @@ Note: HTTPS uses self-signed certificate.
 ├── SKILL.md         # 本文件
 ├── pid.txt          # 服务进程 ID
 ├── port.txt         # HTTP 端口
-├── https-port.txt   # HTTPS 端口
-├── tunnel-url.txt   # 内网穿透地址（可选）
+├── tunnel-url.txt   # 内网穿透地址
 └── dev-logs.json    # 日志文件（JSON 格式）
 ```
 
 ## 地址选择指南
 
-| 用户场景 | 使用地址 | 说明 |
-|----------|----------|------|
-| 本地浏览器 HTTP 页面 | `http://localhost:PORT` | 默认选择 |
-| 本地浏览器 HTTPS 页面 | `https://localhost:PORT` | 避免 Mixed Content |
-| 手机/平板（同一 WiFi） | `http://IP:PORT` | 使用 Network IP |
-| 手机/平板（不同网络） | Tunnel 地址 | 需启动内网穿透 |
-| 远程服务器 / 虚拟机 | Tunnel 地址 | 需启动内网穿透 |
+| 场景 | 使用地址 | 说明 |
+|------|----------|------|
+| 本地 HTTP 页面 | `http://localhost:PORT` | Local 地址 |
+| 手机/平板（同一 WiFi） | `http://IP:PORT` | Network 地址 |
+| 本地 HTTPS 页面 | `https://xxx.loca.lt` | Tunnel 地址（自带 HTTPS） |
+| 手机/平板（不同网络） | `https://xxx.loca.lt` | Tunnel 地址 |
+| 远程服务器 / 虚拟机 | `https://xxx.loca.lt` | Tunnel 地址 |
 
 ## 代码生成规范
 
@@ -128,12 +122,6 @@ fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'applicatio
 ```
 
 ### Python
-
-**探测日志：**
-```python
-import urllib.request, json
-urllib.request.urlopen(urllib.request.Request('http://localhost:PORT', data=json.dumps({'sessionId':'SESSION_ID','time':'TIME','type':'__ready__','data':{'url':'','protocol':''}}).encode(), headers={'Content-Type':'application/json'}))
-```
 
 **业务日志：**
 ```python
@@ -190,7 +178,7 @@ await http.post(
 
 ## 模板变量说明
 
-- `PORT`: 从 `skills/dev-log/port.txt`（HTTP）或 `https-port.txt`（HTTPS）读取的端口号
+- `PORT`: 从 `skills/dev-log/port.txt` 读取的端口号
 - `SESSION_ID`: AI 生成的会话 ID（格式：`sess_` + 8位随机字符）
 - `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
 - `LOG_TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`click` 等）
@@ -227,15 +215,14 @@ await http.post(
 │              → 确认用户是否真的操作了                          │
 │              → 检查事件绑定、触发条件是否正确                    │
 │                                                             │
-│ ❌ 没有 → 网络问题，直接让用户确认场景：                        │
+│ ❌ 没有 → 网络问题，让用户确认场景：                           │
 │                                                             │
 │   "没有收到日志，请确认你的访问场景：                           │
 │                                                             │
 │    A. 本地浏览器 HTTP 页面                                    │
 │    B. 本地浏览器 HTTPS 页面                                   │
 │    C. 手机/平板（同一 WiFi）                                  │
-│    D. 手机/平板（不同网络）                                   │
-│    E. 远程服务器 / 虚拟机"                                    │
+│    D. 手机/平板（不同网络）/ 远程服务器"                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -244,17 +231,18 @@ await http.post(
 | 场景 | 当前地址 | 换成 |
 |------|----------|------|
 | A | localhost | 刷新页面重试 |
-| B | http://localhost | https://localhost |
-| C | localhost | Network IP（如 http://192.168.1.100:PORT） |
-| D | localhost | Tunnel 地址（需先启动 `--tunnel`） |
-| E | localhost | Tunnel 地址（需先启动 `--tunnel`） |
+| B | http://localhost | Tunnel 地址（自带 HTTPS） |
+| C | localhost | Network IP |
+| D | localhost | Tunnel 地址 |
 
 **换地址时清晰展示：**
 ```
 修改前：fetch('http://localhost:54321', {...})
-修改后：fetch('http://192.168.1.100:54321', {...})
-原因：手机无法访问 localhost，需要使用本机 IP
+修改后：fetch('https://xxx.loca.lt', {...})
+原因：HTTPS 页面无法请求 HTTP，使用 Tunnel 地址
 ```
+
+**注意：不需要重启服务**，因为服务启动时已经开启了所有地址。
 
 ## 完整使用流程
 
@@ -267,7 +255,7 @@ await http.post(
 7. **提示用户操作** → "请操作一下，然后告诉我结果"
 8. **用户告知完成** → "好了"、"操作完成了"
 9. **读取并分析日志** → 按 sessionId 过滤，按诊断流程处理
-10. **如无日志** → 按诊断流程排查
+10. **如无 __ready__** → 按诊断流程换地址
 
 ## API 端点
 
@@ -282,5 +270,4 @@ await http.post(
 2. **必须注入探测日志** - 用于判断是网络问题还是代码未执行
 3. **生产环境** - 务必移除调试代码
 4. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑
-5. **HTTPS 证书** - 自签名证书首次访问会有警告，点击继续即可
-6. **本地开发** - 仅用于本地开发，不要暴露到公网
+5. **本地开发** - 仅用于本地开发，不要暴露到公网

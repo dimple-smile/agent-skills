@@ -18,8 +18,7 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "localtunnel": "^2.0.2",
-    "selfsigned": "^2.4.1"
+    "localtunnel": "^2.0.2"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",

@@ -1,17 +1,14 @@
 #!/usr/bin/env node
 
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const selfsigned = require('selfsigned');
 const localtunnel = require('localtunnel');
 
 const LOG_FILE = path.join(__dirname, 'dev-logs.json');
 const PID_FILE = path.join(__dirname, 'pid.txt');
 const PORT_FILE = path.join(__dirname, 'port.txt');
-const HTTPS_PORT_FILE = path.join(__dirname, 'https-port.txt');
 const TUNNEL_URL_FILE = path.join(__dirname, 'tunnel-url.txt');
 
 // Maximum request body size (10MB)
@@ -21,19 +18,16 @@ const MAX_BODY_SIZE = 10 * 1024 * 1024;
 let addresses = {
   local: null,
   network: null,
-  https: null,
   tunnel: null
 };
 
 /**
  * Get local network IP address
- * @returns {string|null} Local IP address or null
  */
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
-      // Skip internal and non-IPv4 addresses
       if (iface.family === 'IPv4' && !iface.internal) {
         return iface.address;
       }
@@ -44,8 +38,6 @@ function getLocalIP() {
 
 /**
  * Validate log entry structure
- * @param {any} log - Log entry to validate
- * @returns {boolean} True if valid
  */
 function isValidLogEntry(log) {
   if (!log || typeof log !== 'object' || Array.isArray(log)) return false;
@@ -54,7 +46,6 @@ function isValidLogEntry(log) {
 
 /**
  * Safely read logs from file
- * @returns {Array} Array of log entries
  */
 function readLogs() {
   try {
@@ -67,7 +58,6 @@ function readLogs() {
 
 /**
  * Add CORS headers to response
- * @param {http.ServerResponse} res - Response object
  */
 function addCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -127,7 +117,7 @@ function handlePostLogs(req, res) {
 }
 
 /**
- * Kill old process if pid.txt exists and process is running
+ * Kill old process if pid.txt exists
  */
 function killOldProcess() {
   if (fs.existsSync(PID_FILE)) {
@@ -148,35 +138,32 @@ function killOldProcess() {
 /**
  * Self-test the server after startup
  */
-function selfTest(port, useHttps = false) {
+function selfTest(port) {
   return new Promise((resolve) => {
-    const lib = useHttps ? https : http;
-    const req = lib.request({
+    const req = http.request({
       hostname: 'localhost',
       port: port,
       path: '/health',
       method: 'GET',
-      timeout: 2000,
-      // For HTTPS, allow self-signed certs
-      rejectUnauthorized: false
+      timeout: 2000
     }, (res) => {
       if (res.statusCode === 200) {
-        console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test passed`);
+        console.log('HTTP self-test passed');
         resolve(true);
       } else {
-        console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: status ${res.statusCode}`);
+        console.log(`HTTP self-test failed: status ${res.statusCode}`);
         resolve(false);
       }
     });
 
     req.on('error', (e) => {
-      console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: ${e.message}`);
+      console.log(`HTTP self-test failed: ${e.message}`);
       resolve(false);
     });
 
     req.on('timeout', () => {
       req.destroy();
-      console.log(`${useHttps ? 'HTTPS' : 'HTTP'} self-test failed: timeout`);
+      console.log('HTTP self-test failed: timeout');
       resolve(false);
     });
 
@@ -208,20 +195,17 @@ function handleRequest(req, res) {
 
   const url = req.url.split('?')[0];
 
-  // Health check endpoint
   if (req.method === 'GET' && url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
     return;
   }
 
-  // POST to / or /logs
   if (req.method === 'POST' && (url === '/' || url === '/logs')) {
     handlePostLogs(req, res);
     return;
   }
 
-  // GET / - show running status with addresses
   if (req.method === 'GET' && url === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
@@ -239,7 +223,6 @@ function handleRequest(req, res) {
     return;
   }
 
-  // GET logs
   if (req.method === 'GET' && url === '/logs') {
     const logs = readLogs();
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -252,18 +235,6 @@ function handleRequest(req, res) {
 }
 
 /**
- * Generate self-signed HTTPS certificate
- */
-function generateHttpsCert() {
-  console.log('Generating HTTPS certificate...');
-  const { private: key, cert } = selfsigned.generate(
-    [{ name: 'commonName', value: 'localhost' }],
-    { days: 365, keySize: 2048 }
-  );
-  return { key, cert };
-}
-
-/**
  * Start localtunnel for remote access
  */
 async function startTunnel(port) {
@@ -272,7 +243,6 @@ async function startTunnel(port) {
     const tunnel = await localtunnel({ port });
     console.log(`Tunnel started: ${tunnel.url}`);
 
-    // Save tunnel URL
     fs.writeFileSync(TUNNEL_URL_FILE, tunnel.url);
     addresses.tunnel = tunnel.url;
 
@@ -305,30 +275,27 @@ function printStartupInfo() {
   if (addresses.network) {
     console.log(`  Network: http://${addresses.network}`);
   }
-  if (addresses.https) {
-    console.log(`  HTTPS:   https://localhost:${addresses.https}`);
-  }
   if (addresses.tunnel) {
     console.log(`  Tunnel:  ${addresses.tunnel}`);
   }
-  console.log('\nNote: HTTPS uses self-signed certificate.');
-  console.log('      First visit will show a security warning - click "Continue" to proceed.');
+  console.log('\nUsage:');
+  console.log('  - Local HTTP page: use Local address');
+  console.log('  - Mobile (same WiFi): use Network address');
+  console.log('  - HTTPS page / Remote: use Tunnel address');
   console.log('========================================\n');
 }
 
 /**
- * Start the servers
+ * Start the server
  */
-async function startServer(options = {}) {
-  const { enableHttps = true, enableTunnel = false } = options;
-
+async function startServer() {
   // Clear log file
   if (fs.existsSync(LOG_FILE)) {
     fs.unlinkSync(LOG_FILE);
   }
 
   // Clear old port files
-  [PORT_FILE, HTTPS_PORT_FILE, TUNNEL_URL_FILE].forEach(f => {
+  [PORT_FILE, TUNNEL_URL_FILE].forEach(f => {
     if (fs.existsSync(f)) fs.unlinkSync(f);
   });
 
@@ -364,36 +331,9 @@ async function startServer(options = {}) {
     });
   });
 
-  // Start HTTPS server
-  if (enableHttps) {
-    const { key, cert } = generateHttpsCert();
-    const httpsServer = https.createServer({ key, cert }, (req, res) => {
-      handleRequest(req, res);
-    });
-
-    await new Promise((resolve) => {
-      httpsServer.listen(0, async () => {
-        const httpsPort = httpsServer.address().port;
-        fs.writeFileSync(HTTPS_PORT_FILE, String(httpsPort));
-        addresses.https = httpsPort;
-
-        console.log(`HTTPS server on port ${httpsPort}`);
-
-        const httpsHealthy = await selfTest(httpsPort, true);
-        if (!httpsHealthy) {
-          console.log('HTTPS server self-test failed (continuing anyway)');
-        }
-
-        resolve();
-      });
-    });
-  }
-
-  // Start tunnel if requested
-  if (enableTunnel) {
-    const httpPort = addresses.local;
-    await startTunnel(httpPort);
-  }
+  // Start tunnel (default)
+  const httpPort = addresses.local;
+  await startTunnel(httpPort);
 
   // Print startup info
   printStartupInfo();
@@ -404,14 +344,10 @@ async function startServer(options = {}) {
   });
 }
 
-// Parse command line args
-const args = process.argv.slice(2);
-const enableTunnel = args.includes('--tunnel') || args.includes('-t');
-
 // Start server if this file is run directly
 if (require.main === module) {
   killOldProcess();
-  startServer({ enableHttps: true, enableTunnel });
+  startServer();
 }
 
 module.exports = {
@@ -420,6 +356,5 @@ module.exports = {
   startServer,
   selfTest,
   getLocalIP,
-  generateHttpsCert,
   startTunnel
 };
