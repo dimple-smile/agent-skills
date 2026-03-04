@@ -3,6 +3,17 @@ use serde_json::json;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+fn get_time() -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    let hours = (now % 86400) / 3600;
+    let mins = (now % 3600) / 60;
+    let secs = now % 60;
+    format!("{:02}:{:02}:{:02}", hours, mins, secs)
+}
+
 fn main() {
     let port = env::var("PORT").unwrap_or_else(|_| "3000".to_string());
     let host = env::var("HOST").unwrap_or_else(|_| "host.docker.internal".to_string());
@@ -16,7 +27,7 @@ fn main() {
     let send_log = |log_type: &str, data: serde_json::Value| -> bool {
         let body = json!({
             "sessionId": &session_id,
-            "time": chrono::Local::now().format("%H:%M:%S").to_string(),
+            "time": get_time(),
             "type": log_type,
             "data": data
         });
