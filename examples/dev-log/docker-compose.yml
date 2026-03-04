@@ -62,11 +62,11 @@ services:
 
   # Rust
   rust:
-    image: rust:1.75-slim
+    image: rust:1.83-slim
     volumes:
       - ./src:/src
     working_dir: /src
-    command: sh -c "cd /tmp && cargo init --name devlog && cp /src/test.rs src/main.rs && echo 'reqwest = { version = \"0.11\", features = [\"blocking\", \"json\"] }' >> Cargo.toml && echo 'serde_json = \"1.0\"' >> Cargo.toml && cargo run"
+    command: sh -c "apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /tmp/rusttest && mkdir -p /tmp/rusttest && cd /tmp/rusttest && cargo init --name devlog && cp /src/test.rs src/main.rs && echo 'reqwest = { version = \"0.11\", features = [\"blocking\", \"json\"] }' >> Cargo.toml && echo 'serde_json = \"1.0\"' >> Cargo.toml && cargo run"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
       - HOST=host.docker.internal
@@ -140,11 +140,11 @@ services:
 
   # Kotlin
   kotlin:
-    image: zenika/kotlin:jdk21
+    image: openjdk:21-jdk-slim
     volumes:
       - ./src:/src
     working_dir: /src
-    command: sh -c "kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
+    command: sh -c "apt-get update && apt-get install -y curl unzip && curl -s https://get.sdkman.io | bash && source ~/.sdkman/bin/sdkman-init.sh && sdk install kotlin && kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
       - HOST=host.docker.internal
@@ -166,7 +166,7 @@ services:
 
   # Dart
   dart:
-    image: dart:stable
+    image: google/dart:latest
     volumes:
       - ./src:/src
     working_dir: /src
