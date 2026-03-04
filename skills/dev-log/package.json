@@ -15,10 +15,9 @@
       "default": "./dist/index.mjs"
     }
   },
-  "bin": "./dist/cli.cjs",
   "scripts": {
     "build": "pkgroll",
-    "start": "node dist/cli.cjs",
+    "start": "node dist/index.cjs",
     "test": "vitest run"
   },
   "keywords": [

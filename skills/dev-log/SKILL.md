@@ -35,14 +35,13 @@ tags:
 
 **启动命令：**
 ```bash
-cd skills/dev-log && ./start.sh
+cd skills/dev-log && node dist/index.cjs
 ```
 
-启动脚本会自动：
-1. 检查现有服务状态（读取 `port.txt` 并测试连接）
-2. 如果服务正常运行，则复用现有服务
-3. 如果服务异常或不存在，则启动新服务
-4. 同时启动 HTTP 服务和内网穿透
+服务会自动：
+1. 启动 HTTP 服务（随机端口）
+2. 启动内网穿透（Tunnel）
+3. 打印可用地址
 
 **启动输出示例：**
 ```
@@ -62,19 +61,6 @@ Usage:
 ========================================
 ```
 
-**文件结构：**
-```
-./skills/dev-log/
-├── server.cjs       # HTTP 服务器（CommonJS 模块）
-├── start.sh         # 启动脚本（检查/启动服务）
-├── read-log.sh      # 读取日志脚本（支持过滤）
-├── SKILL.md         # 本文件
-├── pid.txt          # 服务进程 ID
-├── port.txt         # HTTP 端口
-├── tunnel-url.txt   # 内网穿透地址
-└── dev-logs.json    # 日志文件（JSON 格式）
-```
-
 ## 地址选择指南
 
 | 场景 | 使用地址 | 说明 |
@@ -85,6 +71,18 @@ Usage:
 | 手机/平板（不同网络） | `https://xxx.loca.lt` | Tunnel 地址 |
 | 远程服务器 / 虚拟机 | `https://xxx.loca.lt` | Tunnel 地址 |
 
+## 读取日志
+
+**读取所有日志：**
+```bash
+curl http://localhost:PORT/logs
+```
+
+**按 sessionId 过滤：**
+```bash
+curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+```
+
 ## 代码生成规范
 
 ### 1. 必须注入 `__ready__` 探测日志
@@ -92,18 +90,12 @@ Usage:
 每次生成日志代码时，**必须**先注入一条 `__ready__` 探测日志，用于判断网络连通性：
 
 ```javascript
-// 探测日志 - 页面加载/组件挂载时立即执行
 fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
 ```
-
-**探测日志的作用：**
-- 如果收到 `__ready__` → 网络连接正常
-- 如果没收到 `__ready__` → 网络问题，需要换地址
 
 ### 2. 然后注入业务日志
 
 ```javascript
-// 业务日志 - 事件触发时执行
 fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
 ```
 
@@ -123,7 +115,6 @@ fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'applicatio
 
 ### Python
 
-**业务日志：**
 ```python
 import urllib.request, json
 urllib.request.urlopen(urllib.request.Request('http://localhost:PORT', data=json.dumps({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}).encode(), headers={'Content-Type':'application/json'}))
@@ -131,7 +122,6 @@ urllib.request.urlopen(urllib.request.Request('http://localhost:PORT', data=json
 
 ### Swift (iOS)
 
-**业务日志：**
 ```swift
 var request = URLRequest(url: URL(string: "http://localhost:PORT")!)
 request.httpMethod = "POST"
@@ -142,7 +132,6 @@ URLSession.shared.dataTask(with: request).resume()
 
 ### Kotlin (Android)
 
-**业务日志：**
 ```kotlin
 import okhttp3.*
 val client = OkHttpClient()
@@ -153,7 +142,6 @@ client.newCall(request).execute()
 
 ### Go
 
-**业务日志：**
 ```go
 import (
     "bytes"
@@ -165,7 +153,6 @@ http.Post("http://localhost:PORT", "application/json", body)
 
 ### Dart (Flutter)
 
-**业务日志：**
 ```dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -178,29 +165,20 @@ await http.post(
 
 ## 模板变量说明
 
-- `PORT`: 从 `skills/dev-log/port.txt` 读取的端口号
+- `PORT`: 从服务启动输出中获取
 - `SESSION_ID`: AI 生成的会话 ID（格式：`sess_` + 8位随机字符）
 - `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
 - `LOG_TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`click` 等）
 - `DATA`: 要记录的任意数据对象
 
-## 日志读取
-
-**读取所有日志：**
-```bash
-./skills/dev-log/read-log.sh
-```
-
-**按 sessionId 过滤日志：**
-```bash
-./skills/dev-log/read-log.sh "$SESSION_ID"
-```
-
 ## 诊断流程
 
 ### Step 1: 读取日志
 
-用户说"操作完成了"后，AI 读取日志。
+用户说"操作完成了"后，AI 通过 HTTP 读取日志：
+```bash
+curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+```
 
 ### Step 2: 判断情况
 
@@ -237,31 +215,18 @@ await http.post(
 
 **换地址时清晰展示：**
 ```
-修改前：fetch('http://localhost:54321', {...})
+修改前：fetch('http://localhost:PORT', {...})
 修改后：fetch('https://xxx.loca.lt', {...})
 原因：HTTPS 页面无法请求 HTTP，使用 Tunnel 地址
 ```
 
 **注意：不需要重启服务**，因为服务启动时已经开启了所有地址。
 
-## 完整使用流程
-
-1. **AI 判断需要调试** → 自动启动 dev-log 技能
-2. **检查/启动服务** → `./start.sh`
-3. **生成 sessionId** → 在内存中记住，格式 `sess_xxxxxxxxx`
-4. **读取端口号** → 从 `port.txt` 获取
-5. **注入探测日志** → `__ready__` 类型
-6. **注入业务日志** → 在关键位置插入 fetch 语句
-7. **提示用户操作** → "请操作一下，然后告诉我结果"
-8. **用户告知完成** → "好了"、"操作完成了"
-9. **读取并分析日志** → 按 sessionId 过滤，按诊断流程处理
-10. **如无 __ready__** → 按诊断流程换地址
-
 ## API 端点
 
 - `GET /` - 查看服务运行状态和可用地址
 - `POST /` 或 `POST /logs` - 提交日志
-- `GET /logs` - 获取所有日志
+- `GET /logs` - 获取所有日志（可选 `?sessionId=xxx` 过滤）
 - `GET /health` - 健康检查
 
 ## 注意事项

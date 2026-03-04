@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel from 'localtunnel';
+import { URL } from 'url';
 
 const LOG_FILE = path.join(__dirname, '..', 'dev-logs.json');
 const PID_FILE = path.join(__dirname, '..', 'pid.txt');
@@ -47,10 +48,14 @@ function isValidLogEntry(log: unknown): boolean {
   return Object.keys(log as object).length > 0;
 }
 
-export function readLogs(): LogEntry[] {
+export function readLogs(sessionId?: string): LogEntry[] {
   try {
     const data = fs.readFileSync(LOG_FILE, 'utf-8');
-    return JSON.parse(data);
+    const logs = JSON.parse(data);
+    if (sessionId) {
+      return logs.filter((log: LogEntry) => log.sessionId === sessionId);
+    }
+    return logs;
   } catch {
     return [];
   }
@@ -168,20 +173,22 @@ export function handleRequest(req: http.IncomingMessage, res: http.ServerRespons
     return;
   }
 
-  const url = req.url?.split('?')[0] || '/';
+  const fullUrl = req.url || '/';
+  const urlObj = new URL(fullUrl, `http://localhost:${addresses.local || 3000}`);
+  const pathname = urlObj.pathname;
 
-  if (req.method === 'GET' && url === '/health') {
+  if (req.method === 'GET' && pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
     return;
   }
 
-  if (req.method === 'POST' && (url === '/' || url === '/logs')) {
+  if (req.method === 'POST' && (pathname === '/' || pathname === '/logs')) {
     handlePostLogs(req, res);
     return;
   }
 
-  if (req.method === 'GET' && url === '/') {
+  if (req.method === 'GET' && pathname === '/') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       name: 'dev-log',
@@ -191,15 +198,16 @@ export function handleRequest(req: http.IncomingMessage, res: http.ServerRespons
       endpoints: {
         'POST /': 'Submit logs',
         'POST /logs': 'Submit logs (alternative)',
-        'GET /logs': 'Get all logs',
+        'GET /logs': 'Get all logs (optional ?sessionId=xxx to filter)',
         'GET /health': 'Health check'
       }
     }));
     return;
   }
 
-  if (req.method === 'GET' && url === '/logs') {
-    const logs = readLogs();
+  if (req.method === 'GET' && pathname === '/logs') {
+    const sessionId = urlObj.searchParams.get('sessionId') || undefined;
+    const logs = readLogs(sessionId);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(logs));
     return;
@@ -255,6 +263,9 @@ export function printStartupInfo(): void {
   console.log('  - Local HTTP page: use Local address');
   console.log('  - Mobile (same WiFi): use Network address');
   console.log('  - HTTPS page / Remote: use Tunnel address');
+  console.log('\nRead logs:');
+  console.log('  curl http://localhost:${addresses.local}/logs');
+  console.log('  curl "http://localhost:${addresses.local}/logs?sessionId=sess_xxx"');
   console.log('========================================\n');
 }
 
@@ -312,6 +323,15 @@ export async function startServer(): Promise<void> {
 
   httpServer.on('error', (err) => {
     console.error('Server error:', err);
+    process.exit(1);
+  });
+}
+
+// Auto-start when run directly
+if (require.main === module) {
+  killOldProcess();
+  startServer().catch((err) => {
+    console.error('Failed to start server:', err);
     process.exit(1);
   });
 }

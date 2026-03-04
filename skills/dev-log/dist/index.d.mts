@@ -13,7 +13,7 @@ interface LogEntry {
 }
 declare const addresses: Addresses;
 declare function getLocalIP(): string | null;
-declare function readLogs(): LogEntry[];
+declare function readLogs(sessionId?: string): LogEntry[];
 declare function killOldProcess(): void;
 declare function selfTest(port: number): Promise<boolean>;
 declare function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void;
