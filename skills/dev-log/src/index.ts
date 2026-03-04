@@ -1,33 +1,39 @@
-#!/usr/bin/env node
+import http from 'http';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import localtunnel from 'localtunnel';
 
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const localtunnel = require('localtunnel');
+const LOG_FILE = path.join(__dirname, '..', 'dev-logs.json');
+const PID_FILE = path.join(__dirname, '..', 'pid.txt');
+const PORT_FILE = path.join(__dirname, '..', 'port.txt');
+const TUNNEL_URL_FILE = path.join(__dirname, '..', 'tunnel-url.txt');
 
-const LOG_FILE = path.join(__dirname, 'dev-logs.json');
-const PID_FILE = path.join(__dirname, 'pid.txt');
-const PORT_FILE = path.join(__dirname, 'port.txt');
-const TUNNEL_URL_FILE = path.join(__dirname, 'tunnel-url.txt');
-
-// Maximum request body size (10MB)
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
-// Store addresses for output
-let addresses = {
+export interface Addresses {
+  local: number | null;
+  network: string | null;
+  tunnel: string | null;
+}
+
+export interface LogEntry {
+  sessionId: string;
+  time: string;
+  type: string;
+  data: unknown;
+}
+
+export const addresses: Addresses = {
   local: null,
   network: null,
   tunnel: null
 };
 
-/**
- * Get local network IP address
- */
-function getLocalIP() {
+export function getLocalIP(): string | null {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
+    for (const iface of interfaces[name] || []) {
       if (iface.family === 'IPv4' && !iface.internal) {
         return iface.address;
       }
@@ -36,39 +42,27 @@ function getLocalIP() {
   return null;
 }
 
-/**
- * Validate log entry structure
- */
-function isValidLogEntry(log) {
+function isValidLogEntry(log: unknown): boolean {
   if (!log || typeof log !== 'object' || Array.isArray(log)) return false;
-  return Object.keys(log).length > 0;
+  return Object.keys(log as object).length > 0;
 }
 
-/**
- * Safely read logs from file
- */
-function readLogs() {
+export function readLogs(): LogEntry[] {
   try {
     const data = fs.readFileSync(LOG_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch (e) {
+  } catch {
     return [];
   }
 }
 
-/**
- * Add CORS headers to response
- */
-function addCorsHeaders(res) {
+function addCorsHeaders(res: http.ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
-/**
- * Handle POST request for logging
- */
-function handlePostLogs(req, res) {
+function handlePostLogs(req: http.IncomingMessage, res: http.ServerResponse): void {
   let body = '';
   let bodySize = 0;
 
@@ -111,15 +105,12 @@ function handlePostLogs(req, res) {
       res.end(JSON.stringify({ success: true }));
     } catch (e) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      res.end(JSON.stringify({ error: (e as Error).message }));
     }
   });
 }
 
-/**
- * Kill old process if pid.txt exists
- */
-function killOldProcess() {
+export function killOldProcess(): void {
   if (fs.existsSync(PID_FILE)) {
     const pid = parseInt(fs.readFileSync(PID_FILE, 'utf-8').trim(), 10);
     if (pid && !isNaN(pid)) {
@@ -127,7 +118,7 @@ function killOldProcess() {
         process.kill(pid, 0);
         console.log(`Killing old process with PID ${pid}`);
         process.kill(pid, 'SIGTERM');
-      } catch (e) {
+      } catch {
         console.log('Old process not running, skipping kill');
       }
     }
@@ -135,10 +126,7 @@ function killOldProcess() {
   }
 }
 
-/**
- * Self-test the server after startup
- */
-function selfTest(port) {
+export function selfTest(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const req = http.request({
       hostname: 'localhost',
@@ -171,20 +159,7 @@ function selfTest(port) {
   });
 }
 
-/**
- * Create HTTP server for log collection
- */
-function createServer() {
-  const server = http.createServer((req, res) => {
-    handleRequest(req, res);
-  });
-  return server;
-}
-
-/**
- * Handle incoming request
- */
-function handleRequest(req, res) {
+export function handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
   addCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
@@ -193,7 +168,7 @@ function handleRequest(req, res) {
     return;
   }
 
-  const url = req.url.split('?')[0];
+  const url = req.url?.split('?')[0] || '/';
 
   if (req.method === 'GET' && url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -234,10 +209,11 @@ function handleRequest(req, res) {
   res.end('Not Found');
 }
 
-/**
- * Start localtunnel for remote access
- */
-async function startTunnel(port) {
+export function createServer(): http.Server {
+  return http.createServer(handleRequest);
+}
+
+export async function startTunnel(port: number): Promise<string | null> {
   try {
     console.log('Starting tunnel...');
     const tunnel = await localtunnel({ port });
@@ -256,15 +232,12 @@ async function startTunnel(port) {
 
     return tunnel.url;
   } catch (e) {
-    console.log(`Failed to start tunnel: ${e.message}`);
+    console.log(`Failed to start tunnel: ${(e as Error).message}`);
     return null;
   }
 }
 
-/**
- * Print startup info
- */
-function printStartupInfo() {
+export function printStartupInfo(): void {
   console.log('\n========================================');
   console.log('Dev-log server is running');
   console.log('========================================');
@@ -285,10 +258,7 @@ function printStartupInfo() {
   console.log('========================================\n');
 }
 
-/**
- * Start the server
- */
-async function startServer() {
+export async function startServer(): Promise<void> {
   // Clear log file
   if (fs.existsSync(LOG_FILE)) {
     fs.unlinkSync(LOG_FILE);
@@ -305,9 +275,9 @@ async function startServer() {
   // Start HTTP server
   const httpServer = createServer();
 
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     httpServer.listen(0, async () => {
-      const httpPort = httpServer.address().port;
+      const httpPort = (httpServer.address() as { port: number }).port;
       const pid = process.pid;
 
       fs.writeFileSync(PID_FILE, String(pid));
@@ -333,7 +303,9 @@ async function startServer() {
 
   // Start tunnel (default)
   const httpPort = addresses.local;
-  await startTunnel(httpPort);
+  if (httpPort) {
+    await startTunnel(httpPort);
+  }
 
   // Print startup info
   printStartupInfo();
@@ -343,18 +315,3 @@ async function startServer() {
     process.exit(1);
   });
 }
-
-// Start server if this file is run directly
-if (require.main === module) {
-  killOldProcess();
-  startServer();
-}
-
-module.exports = {
-  killOldProcess,
-  createServer,
-  startServer,
-  selfTest,
-  getLocalIP,
-  startTunnel
-};

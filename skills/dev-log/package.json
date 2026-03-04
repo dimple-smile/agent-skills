@@ -1,12 +1,24 @@
 {
   "name": "@dimple-smile/dev-log",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "AI debugging collaboration - collect console.log via HTTP requests",
-  "main": "server.cjs",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    "require": {
+      "types": "./dist/index.d.cts",
+      "default": "./dist/index.cjs"
+    },
+    "import": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "bin": "./dist/cli.cjs",
   "scripts": {
-    "start": "node server.cjs",
-    "start:tunnel": "node server.cjs --tunnel",
-    "build": "esbuild server.cjs --bundle --platform=node --outfile=dist/server.cjs --format=cjs",
+    "build": "pkgroll",
+    "start": "node dist/cli.cjs",
     "test": "vitest run"
   },
   "keywords": [
@@ -21,7 +33,9 @@
     "localtunnel": "^2.0.2"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
+    "@types/node": "^22.0.0",
+    "pkgroll": "^2.15.4",
+    "typescript": "^5.0.0",
     "vitest": "^4.0.18"
   }
 }

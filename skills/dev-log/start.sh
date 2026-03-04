@@ -1,53 +1,28 @@
 #!/bin/bash
 # Dev-log service start script
-# This script checks if the existing service is healthy and starts a new one if needed
 
 set -e
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Files - check dist directory first (for bundled version)
-if [ -f "$SCRIPT_DIR/dist/server.cjs" ]; then
-    DIST_DIR="$SCRIPT_DIR/dist"
-else
-    DIST_DIR="$SCRIPT_DIR"
-fi
+# Files
+PORT_FILE="$SCRIPT_DIR/port.txt"
+TUNNEL_URL_FILE="$SCRIPT_DIR/tunnel-url.txt"
+PID_FILE="$SCRIPT_DIR/pid.txt"
+SERVER_SCRIPT="$SCRIPT_DIR/dist/cli.cjs"
 
-PORT_FILE="$DIST_DIR/port.txt"
-TUNNEL_URL_FILE="$DIST_DIR/tunnel-url.txt"
-PID_FILE="$DIST_DIR/pid.txt"
-SERVER_SCRIPT="$DIST_DIR/server.cjs"
-
-# Fallback to source if dist not exists
-if [ ! -f "$SERVER_SCRIPT" ]; then
-    SERVER_SCRIPT="$SCRIPT_DIR/server.cjs"
-    PORT_FILE="$SCRIPT_DIR/port.txt"
-    TUNNEL_URL_FILE="$SCRIPT_DIR/tunnel-url.txt"
-    PID_FILE="$SCRIPT_DIR/pid.txt"
-fi
-
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
+log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# Get local IP address
 get_local_ip() {
     if command -v ip &> /dev/null; then
         ip route get 1 2>/dev/null | awk '{print $7; exit}' 2>/dev/null && return
@@ -58,7 +33,6 @@ get_local_ip() {
     echo "localhost"
 }
 
-# Check if existing service is healthy
 check_existing_service() {
     if [ ! -f "$PORT_FILE" ]; then
         log_info "No port.txt found, service not running"
@@ -81,7 +55,6 @@ check_existing_service() {
     fi
 }
 
-# Kill old process by pid file
 kill_old_process() {
     if [ -f "$PID_FILE" ]; then
         OLD_PID=$(cat "$PID_FILE" 2>/dev/null || echo "")
@@ -102,7 +75,6 @@ kill_old_process() {
     fi
 }
 
-# Wait for service to be healthy
 wait_for_healthy() {
     local port="$1"
     local max_attempts=10
@@ -118,7 +90,6 @@ wait_for_healthy() {
     return 1
 }
 
-# Print startup info
 print_startup_info() {
     local port="$1"
     local tunnel_url="$2"
@@ -150,7 +121,6 @@ print_startup_info() {
     echo ""
 }
 
-# Start the service
 start_service() {
     log_info "Starting dev-log service..."
 
@@ -208,7 +178,6 @@ start_service() {
     fi
 }
 
-# Main flow
 main() {
     log_info "=== Dev-log service startup ==="
 
