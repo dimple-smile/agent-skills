@@ -7,3 +7,8 @@ skills/dev-log/pid.txt
 skills/dev-log/port.txt
 skills/dev-log/tunnel-url.txt
 skills/dev-log/dev-logs.json
+Cargo.toml
+Program.cs
+*.class
+obj/
+*.csproj
