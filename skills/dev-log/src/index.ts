@@ -5,10 +5,11 @@ import os from 'os';
 import localtunnel from 'localtunnel';
 import { URL } from 'url';
 
-const LOG_FILE = path.join(__dirname, '..', 'dev-logs.json');
-const PID_FILE = path.join(__dirname, '..', 'pid.txt');
-const PORT_FILE = path.join(__dirname, '..', 'port.txt');
-const TUNNEL_URL_FILE = path.join(__dirname, '..', 'tunnel-url.txt');
+// 使用 process.cwd() 而非 __dirname，兼容 ES Module 且日志文件存在用户工作目录
+const LOG_FILE = path.join(process.cwd(), 'dev-logs.json');
+const PID_FILE = path.join(process.cwd(), 'pid.txt');
+const PORT_FILE = path.join(process.cwd(), 'port.txt');
+const TUNNEL_URL_FILE = path.join(process.cwd(), 'tunnel-url.txt');
 
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
 
@@ -327,8 +328,19 @@ export async function startServer(): Promise<void> {
   });
 }
 
-// Auto-start when run directly
-if (require.main === module) {
+// Auto-start when run directly (ESM/CJS compatible)
+// 检查是否作为入口文件运行
+const runDirectly = () => {
+  // CJS 环境
+  if (typeof require !== 'undefined' && require.main === module) {
+    return true;
+  }
+  // ESM 环境：检查是否是 node 直接运行的
+  // 当被 import 时不会有这个条件
+  return false;
+};
+
+if (runDirectly()) {
   killOldProcess();
   startServer().catch((err) => {
     console.error('Failed to start server:', err);

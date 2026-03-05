@@ -140,11 +140,11 @@ services:
 
   # Kotlin
   kotlin:
-    image: openjdk:21-jdk-slim
+    image: ktrose/kotlin:latest
     volumes:
       - ./src:/src
     working_dir: /src
-    command: sh -c "apt-get update && apt-get install -y curl unzip && curl -s https://get.sdkman.io | bash && source ~/.sdkman/bin/sdkman-init.sh && sdk install kotlin && kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
+    command: sh -c "kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
       - HOST=host.docker.internal
@@ -166,7 +166,7 @@ services:
 
   # Dart
   dart:
-    image: google/dart:latest
+    image: cirrusci/dart:latest
     volumes:
       - ./src:/src
     working_dir: /src

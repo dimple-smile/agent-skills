@@ -7,10 +7,10 @@ var os = require('os');
 var localtunnel = require('localtunnel');
 var url = require('url');
 
-const LOG_FILE = path.join(__dirname, "..", "dev-logs.json");
-const PID_FILE = path.join(__dirname, "..", "pid.txt");
-const PORT_FILE = path.join(__dirname, "..", "port.txt");
-const TUNNEL_URL_FILE = path.join(__dirname, "..", "tunnel-url.txt");
+const LOG_FILE = path.join(process.cwd(), "dev-logs.json");
+const PID_FILE = path.join(process.cwd(), "pid.txt");
+const PORT_FILE = path.join(process.cwd(), "port.txt");
+const TUNNEL_URL_FILE = path.join(process.cwd(), "tunnel-url.txt");
 const MAX_BODY_SIZE = 10 * 1024 * 1024;
 const addresses = {
   local: null,
@@ -263,7 +263,13 @@ async function startServer() {
     process.exit(1);
   });
 }
-if (require.main === module) {
+const runDirectly = () => {
+  if (typeof require !== "undefined" && require.main === module) {
+    return true;
+  }
+  return false;
+};
+if (runDirectly()) {
   killOldProcess();
   startServer().catch((err) => {
     console.error("Failed to start server:", err);
