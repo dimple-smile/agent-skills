@@ -1,0 +1,15 @@
+{
+  "name": "@dimple-smile/dev-log-examples",
+  "version": "1.0.0",
+  "description": "Dev-log multi-language test examples",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node run-tests.mjs",
+    "start": "node run-tests.mjs",
+    "docker": "docker compose -f docker-compose.yml up --abort-on-container-exit"
+  },
+  "dependencies": {
+    "@dimple-smile/dev-log": "workspace:*"
+  }
+}

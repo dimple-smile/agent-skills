@@ -8,6 +8,12 @@ importers:
 
   .: {}
 
+  examples/dev-log:
+    dependencies:
+      '@dimple-smile/dev-log':
+        specifier: workspace:*
+        version: link:../../skills/dev-log
+
   skills/dev-log:
     dependencies:
       localtunnel:
