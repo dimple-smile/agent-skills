@@ -176,3 +176,16 @@ services:
       - HOST=host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  # R
+  r:
+    image: rocker/r-ver:4.3
+    volumes:
+      - ./src:/src
+    working_dir: /src
+    command: sh -c "apt-get update && apt-get install -y libcurl4-openssl-dev libssl-dev && Rscript -e \"install.packages('httr', repos='https://cloud.r-project.org')\" && Rscript test.R"
+    environment:
+      - PORT=${DEV_LOG_PORT:-3000}
+      - HOST=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
