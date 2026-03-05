@@ -11,7 +11,7 @@ const PID_FILE = path.join(process.cwd(), 'pid.txt');
 const PORT_FILE = path.join(process.cwd(), 'port.txt');
 const TUNNEL_URL_FILE = path.join(process.cwd(), 'tunnel-url.txt');
 
-const MAX_BODY_SIZE = 10 * 1024 * 1024;
+const MAX_BODY_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
 
 export interface Addresses {
   local: number | null;

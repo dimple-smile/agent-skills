@@ -140,11 +140,11 @@ services:
 
   # Kotlin
   kotlin:
-    image: ktrose/kotlin:latest
+    image: eclipse-temurin:21-jdk
     volumes:
       - ./src:/src
     working_dir: /src
-    command: sh -c "kotlinc Test.kt -include-runtime -d test.jar && java -jar test.jar"
+    command: sh -c "apt-get update && apt-get install -y unzip && curl -fsSL https://github.com/JetBrains/kotlin/releases/download/v2.0.21/kotlin-compiler-2.0.21.zip -o /tmp/kotlin.zip && unzip -q /tmp/kotlin.zip -d /opt && /opt/kotlinc/bin/kotlinc Test.kt -include-runtime -d test.jar && /opt/java/openjdk/bin/java -jar test.jar"
     environment:
       - PORT=${DEV_LOG_PORT:-3000}
       - HOST=host.docker.internal
@@ -166,7 +166,7 @@ services:
 
   # Dart
   dart:
-    image: cirrusci/dart:latest
+    image: dart:stable
     volumes:
       - ./src:/src
     working_dir: /src

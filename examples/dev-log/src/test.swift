@@ -3,6 +3,9 @@
 // 测试 HTTP 请求 + __ready__ 探测
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 let port = ProcessInfo.processInfo.environment["PORT"] ?? "3000"
 let host = ProcessInfo.processInfo.environment["HOST"] ?? "host.docker.internal"
