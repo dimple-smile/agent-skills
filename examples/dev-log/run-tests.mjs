@@ -32,22 +32,34 @@ function sleep(ms) {
 async function waitForPortFile(portFile, timeout = 15000) {
   const startTime = Date.now()
 
-  // 首先等待端口文件被删除（服务启动时会先删除旧文件）
-  while (existsSync(portFile) && Date.now() - startTime < timeout) {
-    await sleep(100)
-  }
+  // 记录初始端口（如果存在）
+  const initialPort = existsSync(portFile)
+    ? parseInt(readFileSync(portFile, 'utf-8').trim(), 10)
+    : null
 
-  // 然后等待新的端口文件生成
+  // 等待端口文件生成或变化
   while (Date.now() - startTime < timeout) {
     if (existsSync(portFile)) {
       const content = readFileSync(portFile, 'utf-8').trim()
       const port = parseInt(content, 10)
       if (port && !isNaN(port) && port > 0) {
-        return port
+        // 如果端口变化了，或者是新生成的，返回新端口
+        if (port !== initialPort) {
+          return port
+        }
       }
     }
     await sleep(100)
   }
+
+  // 超时后，如果文件存在且有效，仍然返回
+  if (existsSync(portFile)) {
+    const port = parseInt(readFileSync(portFile, 'utf-8').trim(), 10)
+    if (port && !isNaN(port) && port > 0) {
+      return port
+    }
+  }
+
   return null
 }
 
@@ -78,29 +90,10 @@ async function main() {
   // 启动 dev-log 服务
   log('blue', '启动 dev-log 服务...\n')
 
-  const portFile = join(__dirname, 'port.txt')
-  const pidFile = join(__dirname, 'pid.txt')
-
-  // 清理旧的端口和 PID 文件，让服务从头启动
-  if (existsSync(portFile)) {
-    const oldPid = existsSync(pidFile) ? readFileSync(pidFile, 'utf-8').trim() : null
-    if (oldPid) {
-      try {
-        process.kill(parseInt(oldPid), 'SIGTERM')
-        log('yellow', `停止旧服务 (PID: ${oldPid})`)
-        await sleep(1000) // 等待旧服务完全停止
-      } catch {
-        // 旧进程可能不存在，忽略
-      }
-    }
-    // 删除旧文件，让服务生成新的
-    existsSync(portFile) && unlinkSync(portFile)
-    existsSync(pidFile) && unlinkSync(pidFile)
-  }
-
-  // 在后台启动服务 (使用 CJS 版本)
-  const serverProcess = spawn('node', [join(__dirname, '../../skills/dev-log/dist/index.cjs')], {
-    cwd: __dirname,
+  // 在后台启动服务 (使用 CJS 版本，cwd 设置为 dist 目录)
+  const distDir = join(__dirname, '../../skills/dev-log/dist')
+  const serverProcess = spawn('node', ['index.cjs'], {
+    cwd: distDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: true
   })
@@ -113,8 +106,8 @@ async function main() {
     process.stderr.write(data)
   })
 
-  // 等待端口文件生成
-  const port = await waitForPortFile(portFile)
+  // 等待端口文件生成 (文件会在 dist 目录下)
+  const port = await waitForPortFile(join(distDir, 'port.txt'))
 
   if (!port) {
     log('red', '❌ 服务启动超时：未能获取端口号')

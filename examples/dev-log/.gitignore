@@ -1,9 +1,3 @@
-# dev-log 临时文件
-dev-logs.json
-pid.txt
-port.txt
-tunnel-url.txt
-
 # 编译产物
 *.jar
 test
