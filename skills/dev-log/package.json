@@ -2,6 +2,7 @@
   "name": "@dimple-smile/dev-log",
   "version": "2.0.0",
   "description": "AI debugging collaboration - collect console.log via HTTP requests",
+  "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
@@ -16,7 +17,7 @@
     }
   },
   "scripts": {
-    "build": "pkgroll",
+    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.mjs",
     "start": "node dist/index.cjs",
     "test": "vitest run"
   },
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "esbuild": "^0.27.3",
     "pkgroll": "^2.15.4",
     "typescript": "^5.0.0",
     "vitest": "^4.0.18"
