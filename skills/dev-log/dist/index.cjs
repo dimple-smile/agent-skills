@@ -3345,11 +3345,19 @@ async function startServer() {
       resolve();
     });
   });
+  printStartupInfo();
   const httpPort = addresses.local;
   if (httpPort) {
-    await startTunnel(httpPort);
+    startTunnel(httpPort).then((url) => {
+      if (url) {
+        console.log(`
+Tunnel ready: ${url}
+`);
+      }
+    }).catch((err) => {
+      console.log(`Tunnel failed: ${err.message}`);
+    });
   }
-  printStartupInfo();
   httpServer.on("error", (err) => {
     console.error("Server error:", err);
     process.exit(1);
