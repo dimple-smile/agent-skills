@@ -3,13 +3,17 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import localtunnel from 'localtunnel';
-import { URL } from 'url';
+import { fileURLToPath } from 'url';
 
-// 使用 process.cwd() 而非 __dirname，兼容 ES Module 且日志文件存在用户工作目录
-const LOG_FILE = path.join(process.cwd(), 'dev-logs.json');
-const PID_FILE = path.join(process.cwd(), 'pid.txt');
-const PORT_FILE = path.join(process.cwd(), 'port.txt');
-const TUNNEL_URL_FILE = path.join(process.cwd(), 'tunnel-url.txt');
+const getDirname = () => {
+  if (typeof __dirname !== 'undefined') return __dirname;
+  return path.dirname(fileURLToPath(import.meta.url));
+};
+
+const LOG_FILE = path.join(getDirname(), 'dev-logs.json');
+const PID_FILE = path.join(getDirname(), 'pid.txt');
+const PORT_FILE = path.join(getDirname(), 'port.txt');
+const TUNNEL_URL_FILE = path.join(getDirname(), 'tunnel-url.txt');
 
 const MAX_BODY_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
 
