@@ -347,14 +347,20 @@ export async function startServer(): Promise<void> {
     });
   });
 
-  // Start tunnel (default)
+  // Print startup info immediately (without tunnel)
+  printStartupInfo();
+
+  // Start tunnel asynchronously (non-blocking)
   const httpPort = addresses.local;
   if (httpPort) {
-    await startTunnel(httpPort);
+    startTunnel(httpPort).then((url) => {
+      if (url) {
+        console.log(`\nTunnel ready: ${url}\n`);
+      }
+    }).catch((err) => {
+      console.log(`Tunnel failed: ${err.message}`);
+    });
   }
-
-  // Print startup info
-  printStartupInfo();
 
   httpServer.on('error', (err) => {
     console.error('Server error:', err);
