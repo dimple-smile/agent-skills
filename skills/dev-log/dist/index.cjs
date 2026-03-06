@@ -3055,6 +3055,7 @@ var require_localtunnel = __commonJS({
 var index_exports = {};
 __export(index_exports, {
   addresses: () => addresses,
+  clearLogs: () => clearLogs,
   createServer: () => createServer,
   getLocalIP: () => getLocalIP,
   handleRequest: () => handleRequest,
@@ -3109,9 +3110,27 @@ function readLogs(sessionId) {
     return [];
   }
 }
+function clearLogs(sessionId) {
+  if (!import_fs.default.existsSync(LOG_FILE)) {
+    return { deleted: 0 };
+  }
+  if (!sessionId) {
+    import_fs.default.unlinkSync(LOG_FILE);
+    return { deleted: 0 };
+  }
+  const allLogs = readLogs();
+  const filteredLogs = allLogs.filter((log) => log.sessionId !== sessionId);
+  const deletedCount = allLogs.length - filteredLogs.length;
+  if (filteredLogs.length === 0) {
+    import_fs.default.unlinkSync(LOG_FILE);
+  } else {
+    import_fs.default.writeFileSync(LOG_FILE, JSON.stringify(filteredLogs, null, 2));
+  }
+  return { deleted: deletedCount };
+}
 function addCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 function handlePostLogs(req, res) {
@@ -3228,6 +3247,7 @@ function handleRequest(req, res) {
         "POST /": "Submit logs",
         "POST /logs": "Submit logs (alternative)",
         "GET /logs": "Get all logs (optional ?sessionId=xxx to filter)",
+        "DELETE /logs": "Clear logs (optional ?sessionId=xxx to clear specific session)",
         "GET /health": "Health check"
       }
     }));
@@ -3238,6 +3258,13 @@ function handleRequest(req, res) {
     const logs = readLogs(sessionId);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(logs));
+    return;
+  }
+  if (req.method === "DELETE" && pathname === "/logs") {
+    const sessionId = urlObj.searchParams.get("sessionId") || void 0;
+    const result = clearLogs(sessionId);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
     return;
   }
   res.writeHead(404);
@@ -3344,6 +3371,7 @@ if (runDirectly()) {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   addresses,
+  clearLogs,
   createServer,
   getLocalIP,
   handleRequest,

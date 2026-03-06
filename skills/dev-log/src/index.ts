@@ -62,9 +62,34 @@ export function readLogs(sessionId?: string): LogEntry[] {
   }
 }
 
+export function clearLogs(sessionId?: string): { deleted: number } {
+  if (!fs.existsSync(LOG_FILE)) {
+    return { deleted: 0 };
+  }
+
+  if (!sessionId) {
+    // 清除所有日志
+    fs.unlinkSync(LOG_FILE);
+    return { deleted: 0 };
+  }
+
+  // 只清除特定 sessionId 的日志
+  const allLogs = readLogs();
+  const filteredLogs = allLogs.filter((log: LogEntry) => log.sessionId !== sessionId);
+  const deletedCount = allLogs.length - filteredLogs.length;
+
+  if (filteredLogs.length === 0) {
+    fs.unlinkSync(LOG_FILE);
+  } else {
+    fs.writeFileSync(LOG_FILE, JSON.stringify(filteredLogs, null, 2));
+  }
+
+  return { deleted: deletedCount };
+}
+
 function addCorsHeaders(res: http.ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
@@ -200,6 +225,7 @@ export function handleRequest(req: http.IncomingMessage, res: http.ServerRespons
         'POST /': 'Submit logs',
         'POST /logs': 'Submit logs (alternative)',
         'GET /logs': 'Get all logs (optional ?sessionId=xxx to filter)',
+        'DELETE /logs': 'Clear logs (optional ?sessionId=xxx to clear specific session)',
         'GET /health': 'Health check'
       }
     }));
@@ -211,6 +237,14 @@ export function handleRequest(req: http.IncomingMessage, res: http.ServerRespons
     const logs = readLogs(sessionId);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(logs));
+    return;
+  }
+
+  if (req.method === 'DELETE' && pathname === '/logs') {
+    const sessionId = urlObj.searchParams.get('sessionId') || undefined;
+    const result = clearLogs(sessionId);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
     return;
   }
 

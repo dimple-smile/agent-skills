@@ -3095,9 +3095,27 @@ function readLogs(sessionId) {
     return [];
   }
 }
+function clearLogs(sessionId) {
+  if (!fs.existsSync(LOG_FILE)) {
+    return { deleted: 0 };
+  }
+  if (!sessionId) {
+    fs.unlinkSync(LOG_FILE);
+    return { deleted: 0 };
+  }
+  const allLogs = readLogs();
+  const filteredLogs = allLogs.filter((log) => log.sessionId !== sessionId);
+  const deletedCount = allLogs.length - filteredLogs.length;
+  if (filteredLogs.length === 0) {
+    fs.unlinkSync(LOG_FILE);
+  } else {
+    fs.writeFileSync(LOG_FILE, JSON.stringify(filteredLogs, null, 2));
+  }
+  return { deleted: deletedCount };
+}
 function addCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 function handlePostLogs(req, res) {
@@ -3214,6 +3232,7 @@ function handleRequest(req, res) {
         "POST /": "Submit logs",
         "POST /logs": "Submit logs (alternative)",
         "GET /logs": "Get all logs (optional ?sessionId=xxx to filter)",
+        "DELETE /logs": "Clear logs (optional ?sessionId=xxx to clear specific session)",
         "GET /health": "Health check"
       }
     }));
@@ -3224,6 +3243,13 @@ function handleRequest(req, res) {
     const logs = readLogs(sessionId);
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(logs));
+    return;
+  }
+  if (req.method === "DELETE" && pathname === "/logs") {
+    const sessionId = urlObj.searchParams.get("sessionId") || void 0;
+    const result = clearLogs(sessionId);
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(result));
     return;
   }
   res.writeHead(404);
@@ -3329,6 +3355,7 @@ if (runDirectly()) {
 }
 export {
   addresses,
+  clearLogs,
   createServer,
   getLocalIP,
   handleRequest,
