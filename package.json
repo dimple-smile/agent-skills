@@ -5,7 +5,11 @@
   "private": true,
   "scripts": {
     "test": "pnpm -r test",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "scan": "node scripts/scan-skill.mjs --all --compact",
+    "scan:verbose": "node scripts/scan-skill.mjs --all --verbose",
+    "scan:json": "node scripts/scan-skill.mjs --all --json",
+    "scan:ci": "node scripts/scan-skill.mjs --all --json --ci"
   },
   "repository": {
     "type": "git",

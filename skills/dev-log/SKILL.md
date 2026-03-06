@@ -1,6 +1,6 @@
 ---
 name: dev-log
-description: AI 调试协作方案。将 console.log 转为 HTTP 请求收集日志，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。支持 Claude Code、OpenCode、Cursor。
+description: AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。支持 JavaScript、Python、Go、Swift、Kotlin 等 14 种语言。
 version: 2.0.0
 tags:
   - debugging
@@ -10,9 +10,7 @@ tags:
 
 # Dev Log
 
-将前端代码的 console.log 输出通过 HTTP 接口实时发送，让 AI 能够自动获取运行时日志，无需用户手动复制控制台内容。
-
-**核心理念：** 大多数 console.log 都是为了让 AI 查看结果，因此应该默认使用 dev-log 方式，除非是非常简单的临时调试。
+将运行时日志通过 HTTP 请求实时发送，让 AI 能够自动获取并分析，无需用户手动复制控制台内容。
 
 ## When to Use
 
@@ -90,13 +88,13 @@ curl "http://localhost:PORT/logs?sessionId=sess_xxx"
 每次生成日志代码时，**必须**先注入一条 `__ready__` 探测日志，用于判断网络连通性：
 
 ```javascript
-fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
+fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
 ```
 
 ### 2. 然后注入业务日志
 
 ```javascript
-fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
+fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
 ```
 
 ## 多语言模板
@@ -105,25 +103,25 @@ fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'applicatio
 
 **探测日志：**
 ```javascript
-fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
+fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
 ```
 
 **业务日志：**
 ```javascript
-fetch('http://localhost:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
+fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
 ```
 
 ### Python
 
 ```python
 import urllib.request, json
-urllib.request.urlopen(urllib.request.Request('http://localhost:PORT', data=json.dumps({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}).encode(), headers={'Content-Type':'application/json'}))
+urllib.request.urlopen(urllib.request.Request('HOST:PORT', data=json.dumps({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}).encode(), headers={'Content-Type':'application/json'}))
 ```
 
 ### Swift (iOS)
 
 ```swift
-var request = URLRequest(url: URL(string: "http://localhost:PORT")!)
+var request = URLRequest(url: URL(string: "HOST:PORT")!)
 request.httpMethod = "POST"
 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 request.httpBody = try? JSONSerialization.data(withJSONObject: ["sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA])
@@ -136,7 +134,7 @@ URLSession.shared.dataTask(with: request).resume()
 import okhttp3.*
 val client = OkHttpClient()
 val body = "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}".toRequestBody("application/json".toMediaType())
-val request = Request.Builder().url("http://localhost:PORT").post(body).build()
+val request = Request.Builder().url("HOST:PORT").post(body).build()
 client.newCall(request).execute()
 ```
 
@@ -148,7 +146,7 @@ import (
     "net/http"
 )
 body := bytes.NewBuffer([]byte(`{"sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA}`))
-http.Post("http://localhost:PORT", "application/json", body)
+http.Post("HOST:PORT", "application/json", body)
 ```
 
 ### Dart (Flutter)
@@ -157,7 +155,7 @@ http.Post("http://localhost:PORT", "application/json", body)
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 await http.post(
-  Uri.parse('http://localhost:PORT'),
+  Uri.parse('HOST:PORT'),
   headers: {'Content-Type': 'application/json'},
   body: jsonEncode({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}),
 );
@@ -168,7 +166,7 @@ await http.post(
 ```cpp
 #include <curl/curl.h>
 CURL* curl = curl_easy_init();
-curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:PORT");
+curl_easy_setopt(curl, CURLOPT_URL, "HOST:PORT");
 curl_easy_setopt(curl, CURLOPT_POST, 1L);
 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}");
 struct curl_slist* headers = curl_slist_append(NULL, "Content-Type: application/json");
@@ -183,7 +181,7 @@ curl_easy_cleanup(curl);
 use reqwest::blocking::Client;
 let client = Client::new();
 let body = serde_json::json!({"sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA});
-client.post("http://localhost:PORT").json(&body).send();
+client.post("HOST:PORT").json(&body).send();
 ```
 
 ### Java
@@ -194,7 +192,7 @@ import java.net.http.*;
 var client = HttpClient.newHttpClient();
 var body = "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}";
 var request = HttpRequest.newBuilder()
-    .uri(URI.create("http://localhost:PORT"))
+    .uri(URI.create("HOST:PORT"))
     .header("Content-Type", "application/json")
     .POST(HttpRequest.BodyPublishers.ofString(body))
     .build();
@@ -208,13 +206,13 @@ using System.Net.Http;
 using System.Text.Json;
 var client = new HttpClient();
 var body = JsonSerializer.Serialize(new { sessionId = "SESSION_ID", time = "TIME", type = "LOG_TYPE", data = DATA });
-await client.PostAsync("http://localhost:PORT", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+await client.PostAsync("HOST:PORT", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
 ```
 
 ### PHP
 
 ```php
-$ch = curl_init('http://localhost:PORT');
+$ch = curl_init('HOST:PORT');
 curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['sessionId'=>'SESSION_ID','time'=>'TIME','type'=>'LOG_TYPE','data'=>DATA]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -227,17 +225,21 @@ curl_close($ch);
 ```ruby
 require 'net/http'
 require 'json'
-uri = URI('http://localhost:PORT')
+uri = URI('HOST:PORT')
 Net::HTTP.post(uri, {sessionId: 'SESSION_ID', time: 'TIME', type: 'LOG_TYPE', data: DATA}.to_json, 'Content-Type' => 'application/json')
 ```
 
 ## 模板变量说明
 
-- `PORT`: 从服务启动输出中获取
+- `HOST`: 服务地址，根据场景选择：
+  - 本地 HTTP 页面 → `http://localhost`
+  - 手机/平板（同一 WiFi）→ Network IP（如 `http://192.168.1.100`，服务启动时显示）
+  - HTTPS 页面/远程 → Tunnel 地址（从 `skills/dev-log/dist/tunnel-url.txt` 读取）
+- `PORT`: 从 `skills/dev-log/dist/port.txt` 读取
 - `SESSION_ID`: AI 生成的会话 ID（格式：`sess_` + 8位随机字符）
 - `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
 - `LOG_TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`click` 等）
-- `DATA`: 要记录的任意数据对象
+- `DATA`: 要记录的任意数据对象（**必须过滤敏感信息**）
 
 ## 诊断流程
 
@@ -295,11 +297,58 @@ curl "http://localhost:PORT/logs?sessionId=sess_xxx"
 - `GET /` - 查看服务运行状态和可用地址
 - `POST /` 或 `POST /logs` - 提交日志
 - `GET /logs` - 获取所有日志（可选 `?sessionId=xxx` 过滤）
+- `DELETE /logs` - 清除所有日志
+- `DELETE /logs?sessionId=xxx` - 清除特定会话的日志
 - `GET /health` - 健康检查
+
+## 日志清理
+
+**清除所有日志：**
+```bash
+curl -X DELETE http://localhost:PORT/logs
+```
+
+**清除特定会话的日志：**
+```bash
+curl -X DELETE "http://localhost:PORT/logs?sessionId=sess_xxx"
+```
+
+> 建议：新一轮调试开始时，先清除旧日志避免混淆。
+
+## 安全警告 ⚠️
+
+**敏感数据保护（重要）：**
+- **禁止记录敏感信息**：密码、token、API key、信用卡号、身份证号等
+- AI 生成日志代码时，**必须自动过滤敏感字段**，使用 `***` 或 `REDACTED` 替代
+
+**敏感字段自动过滤规则：**
+```javascript
+// ❌ 错误示例 - 直接记录可能包含敏感信息的表单数据
+fetch('...', {body:JSON.stringify({data:{password:form.password.value}})})
+
+// ✅ 正确示例 - 过滤敏感字段后再记录
+const sanitize = (obj) => {
+  const sensitive = ['password','pwd','token','secret','key','credit','ssn','apikey'];
+  const safe = {...obj};
+  for (const k of Object.keys(safe)) {
+    if (sensitive.some(s => k.toLowerCase().includes(s))) safe[k] = '***';
+  }
+  return safe;
+};
+fetch('...', {body:JSON.stringify({data:sanitize({email, password})})})
+// 结果: {data:{email:'user@example.com', password:'***'}}
+```
+
+**必须过滤的敏感字段名（不区分大小写）：**
+- `password`, `pwd`, `pass`
+- `token`, `access_token`, `refresh_token`, `auth`
+- `secret`, `api_key`, `apikey`, `key`
+- `credit_card`, `card_number`, `cvv`
+- `ssn`, `id_number`, `passport`
 
 ## 注意事项
 
-1. **默认使用** - 生成前端代码时默认考虑使用 dev-log，除非非常简单
+1. **敏感数据** - **必须过滤敏感字段**，禁止记录密码、token 等
 2. **必须注入探测日志** - 用于判断是网络问题还是代码未执行
 3. **生产环境** - 务必移除调试代码
 4. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑

@@ -1,7 +1,7 @@
 {
   "name": "@dimple-smile/dev-log",
   "version": "2.0.0",
-  "description": "AI debugging collaboration - collect console.log via HTTP requests",
+  "description": "AI debugging collaboration - collect runtime logs via HTTP requests. Supports 14 languages.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
