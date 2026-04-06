@@ -39,6 +39,11 @@ Traditional debugging requires developers to open the console, take screenshots,
 
 No screenshots or log copying needed - AI handles debugging autonomously.
 
+**Install:**
+```bash
+npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log-en
+```
+
 ### llm-wiki
 
 Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains a persistent, interconnected Markdown knowledge base. Knowledge is compiled once and continuously updated, rather than re-derived each time.
@@ -69,6 +74,11 @@ Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains
 3. **Compound Experience** - Say "Fixed it" after solving a problem → AI auto-documents as Bug Track or Knowledge Track
 4. **Query Knowledge** - "What's the difference between X and Y?" → AI synthesizes from multiple pages, archives valuable answers as topic pages
 5. **Health Check** - "Check the wiki" → AI detects contradictions, orphan pages, missing concepts, suggests fixes
+
+**Install:**
+```bash
+npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
+```
 
 ## Installation
 
