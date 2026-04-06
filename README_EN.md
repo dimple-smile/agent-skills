@@ -29,6 +29,32 @@ Traditional debugging requires developers to open the console, take screenshots,
 - Multi-language templates
 - Sensitive data filtering
 
+### llm-wiki / llm-wiki-en
+
+Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains a persistent, interconnected Markdown knowledge base. Knowledge is compiled once and continuously updated, rather than re-derived each time.
+
+- **llm-wiki** — Chinese version
+- **llm-wiki-en** — English version
+
+**Inspired by:**
+- [Karpathy - LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — Incremental knowledge base architecture
+- [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin) — Knowledge compounding
+
+**5 Operations:**
+
+| Operation | Purpose |
+|-----------|---------|
+| `init` | Initialize knowledge base directory and templates |
+| `ingest` | Ingest new materials, extract knowledge into the Wiki |
+| `compound` | Document problem-solving experiences (Bug Track / Knowledge Track) |
+| `query` | Answer questions based on Wiki content, archive valuable answers as topic pages |
+| `lint` | Health check: contradictions, orphan pages, missing concepts, etc. |
+
+**Use Cases:**
+- Academic research, reading notes, competitive analysis
+- Engineering practice documentation (bug fixes, best practices)
+- Long-term topic research with knowledge accumulation
+
 ## Installation
 
 ```bash
