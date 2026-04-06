@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-en
+name: llm-wiki
 description: Build and maintain a personal knowledge wiki. Use when users need to collect and organize knowledge, manage research notes, build a persistent knowledge system, or document problem-solving experiences.
 version: 1.0.0
 tags:

@@ -1,5 +1,5 @@
 ---
-name: dev-log-en
+name: dev-log
 description: AI debugging collaboration solution. Collects runtime logs via HTTP requests, allowing AI to automatically analyze logs after user operations - no screenshots or console copying needed. Supports 14 languages including JavaScript, Python, Go, Swift, Kotlin, and more.
 version: 2.0.0
 tags:
