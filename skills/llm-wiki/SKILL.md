@@ -1,6 +1,6 @@
 ---
 name: llm-wiki
-description: 构建和维护个人知识库 Wiki 的共享规范和架构定义。本文件供子命令引用，不直接作为技能调用。请使用 llm-wiki-init、llm-wiki-add、llm-wiki-compound、llm-wiki-query、llm-wiki-lint。
+description: 构建和维护个人知识库 Wiki 的共享规范和架构定义。本文件供子命令引用，不直接作为技能调用。请使用 llm-wiki:init、llm-wiki:add、llm-wiki:compound、llm-wiki:query、llm-wiki:lint。
 version: 1.0.0
 tags:
   - knowledge-base
@@ -44,13 +44,15 @@ LLM Wiki：
 
 ## 子操作
 
-| 操作 | 调用方式 | 说明 |
-|------|----------|------|
-| 初始化 | `llm-wiki:init` | 创建 Wiki 目录结构和初始文件 |
-| 添加资料 | `llm-wiki:add` | 处理新资料，更新 Wiki 页面 |
-| 经验积累 | `llm-wiki:compound` | 将解决问题的经验文档化 |
-| 查询知识 | `llm-wiki:query` | 基于 Wiki 内容回答问题 |
-| 健康检查 | `llm-wiki:lint` | 检查 Wiki 一致性和完整性 |
+各操作已拆分为独立技能，通过 `depends_on: llm-wiki` 引用本文件的共享规范：
+
+| 操作 | Slash 命令 | 说明 |
+|------|-----------|------|
+| 初始化 | `/llm-wiki:init` | 创建 Wiki 目录结构和初始文件 |
+| 添加资料 | `/llm-wiki:add` | 处理新资料，更新 Wiki 页面 |
+| 经验积累 | `/llm-wiki:compound` | 将解决问题的经验文档化 |
+| 查询知识 | `/llm-wiki:query` | 基于 Wiki 内容回答问题 |
+| 健康检查 | `/llm-wiki:lint` | 检查 Wiki 一致性和完整性 |
 
 各操作已拆分为独立技能，通过 `depends_on: llm-wiki` 引用本文件的共享规范。
 
