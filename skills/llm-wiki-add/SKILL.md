@@ -1,3 +1,14 @@
+---
+name: llm-wiki-add
+description: 添加新资料到 Wiki。当用户说"帮我处理这篇文章"、"我放了新资料在 raw/"、"看看这个链接"时使用。支持文件、链接、文本三种输入。
+version: 1.0.0
+tags:
+  - knowledge-base
+  - wiki
+depends_on:
+  - llm-wiki
+---
+
 # llm-wiki:add
 
 处理新的原始资料，将知识整合进 Wiki。一条新资料可能影响 10-15 个 Wiki 页面。
@@ -6,6 +17,10 @@
 
 - 用户说"帮我处理这篇文章"、"我放了新资料在 raw/"、"看看这个链接"
 - 用户提供了新的文章、论文、书籍章节、笔记等需要归档整理
+
+## 共享规范
+
+Wiki 的目录结构、页面模板、文件命名规范、写作规范等定义在 `llm-wiki` skill 的 SKILL.md 中。执行前请确认已读取该文件。
 
 ## 工作流
 
@@ -76,7 +91,7 @@ grep -r "^source:" wiki/sources/ | sed 's/.*source: //'
 
 ### Step 5: 创建来源摘要页
 
-在 `wiki/sources/` 创建摘要页，使用 SKILL.md 中定义的来源摘要模板。
+在 `wiki/sources/` 创建摘要页，使用 llm-wiki SKILL.md 中定义的来源摘要模板。
 
 文件名格式：`YYYY-MM-DD-简短名称.md`
 
@@ -176,17 +191,4 @@ Agent: [创建 wiki/sources/2026-04-06-attention-paper.md]
 [追加 wiki/log.md]
 
 处理完成。新增 6 个页面，Self-Attention 概念页重点展开了 Scaled Dot-Product 的设计动机。
-```
-
-```markdown
-User: 帮我批量处理 raw/ 里的 3 篇文章，不用一一讨论
-
-Agent: 好的，我来批量处理。
-
-[依次处理 3 篇文章，每篇执行 Step 2-9]
-
-批量处理完成：
-1. [[source-a]] → 新增 4 页，更新 3 页
-2. [[source-b]] → 新增 5 页，更新 2 页，⚠️ 与 [[source-a]] 在 X 方面有矛盾
-3. [[source-c]] → 新增 3 页，更新 4 页
 ```

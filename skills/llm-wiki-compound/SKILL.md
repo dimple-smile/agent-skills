@@ -1,3 +1,15 @@
+---
+name: llm-wiki-compound
+description: 将解决问题的经验文档化。当用户说"搞定了"、"修好了"、"问题解决了"时自动触发，将经验写入 Wiki 的 solutions 目录。
+version: 1.0.0
+tags:
+  - knowledge-base
+  - wiki
+  - compound-engineering
+depends_on:
+  - llm-wiki
+---
+
 # llm-wiki:compound
 
 将解决问题的经验文档化，写入 Wiki 的 `solutions/` 目录。知识复利：第一次花时间研究，文档化后下次几分钟解决。
@@ -15,7 +27,7 @@
 
 **每个解决问题的过程都应该让下一个类似问题更容易。** 第一次遇到 N+1 查询问题 → 研究 30 分钟 → 文档化 → 下次 2 分钟。
 
-`llm-wiki:add` 是**主动学习**（你选择学什么），`llm-wiki:compound` 是**被动积累**（工作中自然产生的知识）。两者写入同一个 Wiki，知识交叉引用。
+`llm-wiki-add` 是**主动学习**（你选择学什么），`llm-wiki-compound` 是**被动积累**（工作中自然产生的知识）。两者写入同一个 Wiki，知识交叉引用。
 
 ## 双轨道
 
@@ -170,7 +182,7 @@ sources: []
 
 ### Step 6: 更新 Wiki
 
-- **更新 index.md** - 在 solutions 分类下添加新条目
+- **更新 index.md** - 在 经验 分类下添加新条目
 - **更新 overview.md** - 更新页面计数和最近更新日期
 - **追加 log.md**：
 
@@ -213,9 +225,7 @@ compound 产生的文档和 add 产生的知识共享同一个 Wiki：
 ```markdown
 User: 搞定了，是数据库连接池配置的问题
 
-Agent: [uses llm-wiki:compound skill]
-
-这是一个值得记录的经验。让我整理一下。
+Agent: 这是一个值得记录的经验。让我整理一下。
 
 [回顾对话上下文]
 [检查 wiki/solutions/ 是否有重叠]
@@ -236,9 +246,7 @@ Agent: [uses llm-wiki:compound skill]
 ```markdown
 User: 我发现一个规律，用 debounce 处理搜索输入比 throttle 效果好
 
-Agent: [uses llm-wiki:compound skill]
-
-好洞察，让我记录下来。
+Agent: 好洞察，让我记录下来。
 
 [创建 wiki/solutions/2026-04-06-debounce-vs-throttle-search.md]
 [检查是否已有相关概念页]

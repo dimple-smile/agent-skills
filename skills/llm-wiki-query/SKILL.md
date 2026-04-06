@@ -1,3 +1,14 @@
+---
+name: llm-wiki-query
+description: 查询 Wiki 知识库。当用户问"X 是什么？"、"帮我总结一下 Y"、"A 和 B 有什么区别？"时使用。基于 Wiki 内容综合回答，好的回答归档回 Wiki。
+version: 1.0.0
+tags:
+  - knowledge-base
+  - wiki
+depends_on:
+  - llm-wiki
+---
+
 # llm-wiki:query
 
 基于 Wiki 内容回答问题。先读 index 定位，再深入页面综合回答。好的回答归档回 Wiki。
@@ -24,6 +35,7 @@
 - 直接匹配的概念/实体页
 - 相关的来源摘要
 - 已有的主题页（可能已有部分回答）
+- solutions 目录中的经验文档
 
 ### Step 3: 综合回答
 
@@ -130,33 +142,4 @@ Agent: [读取 wiki/index.md]
 | 计算复杂度 | O(n×m) | O(n²) |
 
 这个比较已保存为 [[self-attention-vs-attention]]。
-```
-
-```markdown
-User: 目前 Wiki 里关于 Positional Encoding 的内容有哪些？
-
-Agent: [读取 wiki/index.md]
-[读取 wiki/concepts/positional-encoding.md]
-[查找引用了 positional-encoding 的其他页面]
-
-Wiki 中关于 Positional Encoding 的内容：
-
-1. [[positional-encoding]] - 主概念页
-   - 正弦位置编码的设计思路和公式（来源：[[attention-paper]]）
-   - 与学习型位置编码的对比
-
-2. [[bert-architecture]] - 提到 BERT 使用学习型位置编码
-
-3. ⚠️ 发现矛盾：
-   - [[positional-encoding]] 描述了正弦方案
-   - [[bert-architecture]] 提到 BERT 使用学习方案
-   - 建议在 positional-encoding 页面补充：不同架构使用不同方案
-
-4. 信息缺口：
-   - 还没有 RoPE（旋转位置编码）的内容
-   - 缺少 ALiBi 等最新位置编码方案
-
-建议补充：
-- 添加 RoPE 相关资料（LLaMA 系列使用的方案）
-- 在 positional-encoding 页面补充各种方案的对比
 ```

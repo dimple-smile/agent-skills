@@ -1,3 +1,14 @@
+---
+name: llm-wiki-init
+description: 初始化 Wiki 知识库。当用户说"建一个知识库"、"初始化 wiki"、"我想整理笔记"时使用。
+version: 1.0.0
+tags:
+  - knowledge-base
+  - wiki
+depends_on:
+  - llm-wiki
+---
+
 # llm-wiki:init
 
 初始化 Wiki 知识库的目录结构和初始文件。
@@ -103,12 +114,12 @@ Wiki 知识库已初始化！
   ~/llm-wiki/wiki/   ← LLM 维护的知识库
 
 可用命令：
-  llm-wiki:add       添加新资料，自动整理到 Wiki（支持文件、链接、文本）
-  llm-wiki:compound  将解决问题的经验文档化（bug 修复、最佳实践、工作流技巧）
-  llm-wiki:query     查询 Wiki 中的知识，综合回答并归档有价值的分析
-  llm-wiki:lint      检查 Wiki 健康状况，发现矛盾、孤儿页面、缺失概念
+  llm-wiki-add       添加新资料，自动整理到 Wiki（支持文件、链接、文本）
+  llm-wiki-compound  将解决问题的经验文档化（bug 修复、最佳实践、工作流技巧）
+  llm-wiki-query     查询 Wiki 中的知识，综合回答并归档有价值的分析
+  llm-wiki-lint      检查 Wiki 健康状况，发现矛盾、孤儿页面、缺失概念
 
 快速开始：
-  - 把资料放入 raw/ 目录，然后使用 llm-wiki:add 处理
-  - 或直接给链接/文本，llm-wiki:add 会帮你保存并处理
+  - 把资料放入 raw/ 目录，然后使用 llm-wiki-add 处理
+  - 或直接给链接/文本，llm-wiki-add 会帮你保存并处理
 ```

@@ -1,12 +1,14 @@
 ---
 name: llm-wiki
-description: 构建和维护个人知识库 Wiki。当用户需要收集整理知识、管理研究笔记、构建持久化的知识体系时使用。支持 llm-wiki:init（初始化）、llm-wiki:add（添加资料）、llm-wiki:query（查询知识）、llm-wiki:lint（健康检查）四个子操作。
+description: 构建和维护个人知识库 Wiki 的共享规范和架构定义。本文件供子命令引用，不直接作为技能调用。请使用 llm-wiki-init、llm-wiki-add、llm-wiki-compound、llm-wiki-query、llm-wiki-lint。
 version: 1.0.0
 tags:
   - knowledge-base
   - wiki
   - research
   - note-taking
+metadata:
+  internal: true
 ---
 
 # LLM Wiki
@@ -50,7 +52,7 @@ LLM Wiki：
 | 查询知识 | `llm-wiki:query` | 基于 Wiki 内容回答问题 |
 | 健康检查 | `llm-wiki:lint` | 检查 Wiki 一致性和完整性 |
 
-各操作的详细说明见同目录下的 `init.md`、`add.md`、`compound.md`、`query.md`、`lint.md`。
+各操作已拆分为独立技能，通过 `depends_on: llm-wiki` 引用本文件的共享规范。
 
 ## 两层架构
 
