@@ -40,7 +40,7 @@ tags:
 | 用户意图 | 执行操作 |
 |----------|----------|
 | "建一个知识库"、"初始化 wiki" | init |
-| "帮我处理这篇文章"、"我放了新资料"、"看看这个链接" | add |
+| "帮我处理这篇文章"、"我放了新资料"、"看看这个链接" | ingest |
 | "搞定了"、"修好了"、"问题解决了" | compound |
 | "X 是什么？"、"帮我总结一下 Y" | query |
 | "检查一下 wiki"、"整理一下知识库" | lint |
@@ -51,7 +51,7 @@ tags:
 ```
 你想执行哪个操作？
   1. init     - 初始化知识库
-  2. add      - 添加新资料
+  2. ingest   - 摄入新资料
   3. compound - 记录解决问题的经验
   4. query    - 查询已有知识
   5. lint     - 健康检查
@@ -148,8 +148,8 @@ created: YYYY-MM-DD
 Wiki 知识库已初始化！ ~/llm-wiki/
 
 接下来你可以：
-  - 把资料放入 raw/ 目录，我来整理（add）
-  - 给我链接或文本，我帮你保存并处理（add）
+  - 把资料放入 raw/ 目录，我来整理（ingest）
+  - 给我链接或文本，我帮你保存并处理（ingest）
   - 解决了问题后告诉我，我帮你记录（compound）
   - 随时问我关于 Wiki 中已有知识的问题（query）
   - 让我检查 Wiki 的健康状况（lint）
@@ -159,7 +159,7 @@ Wiki 知识库已初始化！ ~/llm-wiki/
 
 ---
 
-## 操作：add（添加资料）
+## 操作：ingest（摄入资料）
 
 处理新的原始资料，将知识整合进 Wiki。一条新资料可能影响 10-15 个 Wiki 页面。
 
@@ -274,7 +274,7 @@ sources: [source-a, source-b]
 #### 9. 追加 log.md
 
 ```markdown
-## [YYYY-MM-DD] add | 资料标题
+## [YYYY-MM-DD] ingest | 资料标题
 
 - **来源**：raw/path/to/file
 - **新增页面**：page-a, page-b
@@ -488,9 +488,155 @@ tags: [tag1, tag2]
 
 Wiki 目录可直接用 Obsidian 打开：Graph View、Web Clipper、Dataview、Marp 插件。
 
+## Examples
+
+### ingest — 摄入资料
+
+```
+User: 我把 Attention Is All You Need 的论文放进 raw/papers/ 了
+
+Agent: 我来处理这篇论文。
+
+[读取 raw/papers/attention-is-all-you-need.pdf]
+[提取关键信息]
+
+这篇论文的核心要点：
+1. 提出了 Transformer 架构，完全基于注意力机制，抛弃了 RNN/CNN
+2. 引入了 Multi-Head Self-Attention 和 Positional Encoding
+3. 在机器翻译任务上达到 SOTA
+
+涉及实体：Google Brain、Ashish Vaswani 等 8 位作者
+涉及概念：Self-Attention、Multi-Head Attention、Positional Encoding、Layer Normalization
+
+要重点关注哪些方面？
+
+User: 重点看 Self-Attention 的设计思路
+
+Agent: [创建 wiki/sources/2026-04-06-attention-paper.md]
+[创建 wiki/concepts/self-attention.md - 重点展开设计思路]
+[创建 wiki/entities/transformer.md]
+[创建 wiki/entities/google-brain.md]
+[创建 wiki/concepts/multi-head-attention.md]
+[创建 wiki/concepts/positional-encoding.md]
+[更新 wiki/overview.md]
+[更新 wiki/index.md]
+[追加 wiki/log.md]
+
+处理完成。新增 6 个页面，Self-Attention 概念页重点展开了 Scaled Dot-Product 的设计动机。
+```
+
+### compound — 经验积累
+
+**Bug Track：**
+
+```
+User: 搞定了，是数据库连接池配置的问题
+
+Agent: 这是一个值得记录的经验。让我整理一下。
+
+[回顾对话上下文]
+[检查 wiki/solutions/ 是否有重叠]
+[创建 wiki/solutions/2026-04-06-db-connection-pool-exhausted.md]
+
+经验已文档化。Bug Track。
+
+摘要：
+  问题：高并发下数据库连接池耗尽，请求超时
+  根因：默认连接池大小 5 不够，且未配置连接超时回收
+  解决：调整 pool size 为 20，添加 idle timeout 配置
+
+关联到 Wiki 中已有的 [[database-connections]] 概念页。
+```
+
+**Knowledge Track：**
+
+```
+User: 我发现一个规律，用 debounce 处理搜索输入比 throttle 效果好
+
+Agent: 好洞察，让我记录下来。
+
+[创建 wiki/solutions/2026-04-06-debounce-vs-throttle-search.md]
+[检查是否已有相关概念页]
+
+经验已文档化。Knowledge Track。
+
+核心建议：搜索输入场景用 debounce（等用户停止输入后才触发），
+优于 throttle（固定间隔触发），因为搜索需要完整的关键词。
+
+Wiki 中还没有 debounce 和 throttle 的概念页，要创建吗？
+```
+
+### query — 查询知识
+
+```
+User: Self-Attention 和普通 Attention 有什么区别？
+
+Agent: [读取 wiki/index.md]
+[定位 wiki/concepts/self-attention.md, wiki/concepts/attention.md]
+[综合回答]
+
+## Self-Attention vs 普通 Attention
+
+**普通 Attention**（来源：[[source-a]]）：
+- Query 和 Key/Value 来自不同序列
+- 典型场景：翻译任务中目标语言关注源语言
+
+**Self-Attention**（来源：[[2026-04-06-attention-paper]]）：
+- Query、Key、Value 都来自同一序列
+- 每个位置可关注序列中所有其他位置
+
+| 维度 | 普通 Attention | Self-Attention |
+|------|---------------|----------------|
+| Q/K/V 来源 | Q ≠ KV | Q = K = V |
+| 捕获关系 | 跨序列 | 序列内部 |
+| 计算复杂度 | O(n×m) | O(n²) |
+
+这个比较已保存为 [[self-attention-vs-attention]]。
+```
+
+### lint — 健康检查
+
+```
+User: 检查一下 wiki
+
+Agent: [读取 wiki/index.md]
+[扫描 wiki/ 全部页面]
+[逐项检查]
+
+#### 🔗 孤儿页面（1）
+1. [[layer-normalization]] - 0 个入站链接
+
+#### 📝 缺失页面（2）
+1. [[residual-connection]] - 被引用 4 次
+2. [[softmax]] - 被引用 2 次
+
+### 建议操作
+1. [高] 创建 [[residual-connection]]（被引用 4 次）
+2. [高] 创建 [[softmax]]（被引用 2 次）
+3. [中] 在 [[positional-encoding]] 补充：不同架构使用不同方案
+4. [低] 为 [[layer-normalization]] 添加入站链接
+
+要我自动修复吗？
+
+User: 1 和 2 你先创建，3 和 4 我看看再说
+
+Agent: 好的，我来创建 residual-connection 和 softmax。
+
+[创建 wiki/concepts/residual-connection.md]
+[创建 wiki/concepts/softmax.md]
+[更新 wiki/index.md]
+[追加 wiki/log.md]
+
+已创建：
+- [[residual-connection]] - 基于 [[attention-paper]] 的描述
+- [[softmax]] - 作为 Self-Attention 中的关键计算步骤
+
+矛盾和孤儿页面先保留，你随时可以让我处理。
+```
+
 ## 适用场景
 
-**主动学习（add）：**
+**主动学习（ingest）：**
 - 学术研究、阅读笔记、竞品分析、课程笔记
 
 **经验积累（compound）：**
