@@ -6,9 +6,12 @@ dimple-smile 的 AI 编程代理技能集合，托管于 [skills.sh](https://ski
 
 ## 可用技能
 
-### dev-log
+### dev-log / dev-log-en
 
 AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。
+
+- **dev-log** — 中文版
+- **dev-log-en** — English version
 
 **支持 14 种语言：** JavaScript、TypeScript、Python、Go、PHP、Ruby、Java、C++、C#、Rust、Swift、Kotlin、Dart、R
 

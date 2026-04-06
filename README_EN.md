@@ -6,9 +6,12 @@ dimple-smile's AI agent skills collection, hosted on [skills.sh](https://skills.
 
 ## Available Skills
 
-### dev-log
+### dev-log / dev-log-en
 
 AI debugging collaboration solution. Collects runtime logs via HTTP requests, allowing AI to automatically analyze logs after user operations - no screenshots or console copying needed.
+
+- **dev-log** — Chinese version
+- **dev-log-en** — English version
 
 **Supports 14 Languages:** JavaScript, TypeScript, Python, Go, PHP, Ruby, Java, C++, C#, Rust, Swift, Kotlin, Dart, R
 
