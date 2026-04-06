@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-add
+name: llm-wiki:add
 description: 添加新资料到 Wiki。当用户说"帮我处理这篇文章"、"我放了新资料在 raw/"、"看看这个链接"时使用。支持文件、链接、文本三种输入。
 version: 1.0.0
 tags:

@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-compound
+name: llm-wiki:compound
 description: 将解决问题的经验文档化。当用户说"搞定了"、"修好了"、"问题解决了"时自动触发，将经验写入 Wiki 的 solutions 目录。
 version: 1.0.0
 tags:

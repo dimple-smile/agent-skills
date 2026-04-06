@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-query
+name: llm-wiki:query
 description: 查询 Wiki 知识库。当用户问"X 是什么？"、"帮我总结一下 Y"、"A 和 B 有什么区别？"时使用。基于 Wiki 内容综合回答，好的回答归档回 Wiki。
 version: 1.0.0
 tags:

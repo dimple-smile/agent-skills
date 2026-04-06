@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-init
+name: llm-wiki:init
 description: 初始化 Wiki 知识库。当用户说"建一个知识库"、"初始化 wiki"、"我想整理笔记"时使用。
 version: 1.0.0
 tags:

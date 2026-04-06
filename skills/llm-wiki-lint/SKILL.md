@@ -1,5 +1,5 @@
 ---
-name: llm-wiki-lint
+name: llm-wiki:lint
 description: 健康检查 Wiki 知识库。当用户说"检查一下 wiki"、"帮我看看有没有问题"时使用。检测矛盾、孤儿页面、缺失概念、过时信息等 6 类问题。
 version: 1.0.0
 tags:
