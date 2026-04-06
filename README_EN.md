@@ -6,12 +6,9 @@ dimple-smile's AI agent skills collection, hosted on [skills.sh](https://skills.
 
 ## Available Skills
 
-### dev-log / dev-log-en
+### dev-log
 
 AI debugging collaboration solution. Collects runtime logs via HTTP requests, allowing AI to automatically analyze logs after user operations - no screenshots or console copying needed.
-
-- **dev-log** — Chinese version
-- **dev-log-en** — English version
 
 **Supports 14 Languages:** JavaScript, TypeScript, Python, Go, PHP, Ruby, Java, C++, C#, Rust, Swift, Kotlin, Dart, R
 
@@ -42,12 +39,9 @@ Traditional debugging requires developers to open the console, take screenshots,
 
 No screenshots or log copying needed - AI handles debugging autonomously.
 
-### llm-wiki / llm-wiki-en
+### llm-wiki
 
 Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains a persistent, interconnected Markdown knowledge base. Knowledge is compiled once and continuously updated, rather than re-derived each time.
-
-- **llm-wiki** — Chinese version
-- **llm-wiki-en** — English version
 
 **Inspired by:**
 - [Karpathy - LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — Incremental knowledge base architecture
@@ -78,8 +72,22 @@ Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains
 
 ## Installation
 
+**Install all skills:**
+
 ```bash
 npx skills add dimple-smile/agent-skills
+```
+
+**Install individual skills by language:**
+
+```bash
+# Chinese version
+npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
+npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
+
+# English
+npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log-en
+npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
 ```
 
 ## Links
