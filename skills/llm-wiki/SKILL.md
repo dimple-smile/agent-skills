@@ -1,14 +1,12 @@
 ---
 name: llm-wiki
-description: 构建和维护个人知识库 Wiki 的共享规范和架构定义。本文件供子命令引用，不直接作为技能调用。请使用 llm-wiki:init、llm-wiki:add、llm-wiki:compound、llm-wiki:query、llm-wiki:lint。
+description: 构建和维护个人知识库 Wiki。当用户需要收集整理知识、管理研究笔记、构建持久化的知识体系、或将解决问题的经验文档化时使用。
 version: 1.0.0
 tags:
   - knowledge-base
   - wiki
   - research
   - note-taking
-metadata:
-  internal: true
 ---
 
 # LLM Wiki
@@ -16,7 +14,7 @@ metadata:
 将 LLM 变成你的 Wiki 维护者。LLM 增量构建并维护一个持久的、相互关联的 Markdown 知识库。知识被编译一次并持续更新，而非每次重新推导。
 
 灵感来源：
-- [Karpathy - LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — 增量知识库架构和三层模型
+- [Karpathy - LLM Wiki](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — 增量知识库架构
 - [Compound Engineering Plugin](https://github.com/EveryInc/compound-engineering-plugin) — 知识复利理念：每次解决问题的经验都应该让下次更容易
 
 ## When to Use
@@ -27,75 +25,188 @@ metadata:
 2. **用户提供了新的学习资料** - 丢了一篇文章、论文、书籍章节需要整理
 3. **用户想查询已有知识** - "这个概念之前读过什么？"
 4. **用户想维护知识库健康** - "检查一下 wiki 有没有矛盾"
-5. **用户在进行长期研究** - 跨周/月的主题研究，需要知识积累
+5. **用户解决了问题** - "搞定了"、"修好了"、"这样就行了"
+6. **用户在进行长期研究** - 跨周/月的主题研究，需要知识积累
 
 **不需要使用的情况：**
 - 一次性问答，不需要持久化知识
-- 代码调试或开发任务
 
-## 核心理念
+## 执行入口
 
-传统 RAG：每次提问都从原始文档重新发现知识，没有积累。
+### Step 1: 判断用户意图
 
-LLM Wiki：
-- **Wiki 是持久的、复利的产物**。交叉引用已建好，矛盾已标记，综合分析反映所有读过的内容
-- **你负责选题和提问，LLM 负责体力活**——总结、交叉引用、归档、维护
-- **Obsidian 是 IDE，LLM 是程序员，Wiki 是代码库**
+根据用户的话判断要执行哪个操作：
 
-## 子操作
+| 用户意图 | 执行操作 |
+|----------|----------|
+| "建一个知识库"、"初始化 wiki" | init |
+| "帮我处理这篇文章"、"我放了新资料"、"看看这个链接" | add |
+| "搞定了"、"修好了"、"问题解决了" | compound |
+| "X 是什么？"、"帮我总结一下 Y" | query |
+| "检查一下 wiki"、"整理一下知识库" | lint |
+| 意图不明确 | 询问用户选择 |
 
-各操作已拆分为独立技能，通过 `depends_on: llm-wiki` 引用本文件的共享规范：
-
-| 操作 | Slash 命令 | 说明 |
-|------|-----------|------|
-| 初始化 | `/llm-wiki:init` | 创建 Wiki 目录结构和初始文件 |
-| 添加资料 | `/llm-wiki:add` | 处理新资料，更新 Wiki 页面 |
-| 经验积累 | `/llm-wiki:compound` | 将解决问题的经验文档化 |
-| 查询知识 | `/llm-wiki:query` | 基于 Wiki 内容回答问题 |
-| 健康检查 | `/llm-wiki:lint` | 检查 Wiki 一致性和完整性 |
-
-各操作已拆分为独立技能，通过 `depends_on: llm-wiki` 引用本文件的共享规范。
-
-## 两层架构
+**意图不明确时询问：**
 
 ```
-~/llm-wiki/
-├── raw/                    # 第 1 层：原始资料（不可变，LLM 只读不写）
-│   ├── articles/           # 文章
-│   ├── papers/             # 论文
-│   ├── books/              # 书籍章节
-│   ├── notes/              # 手写笔记、播客笔记
-│   └── assets/             # 图片等附件
-└── wiki/                   # 第 2 层：LLM 维护的 Wiki（LLM 拥有此层）
-    ├── index.md            # 内容目录（按类别组织，每次 add 后更新）
-    ├── log.md              # 操作日志（追加式时间线）
-    ├── overview.md         # 整体概览/综述
-    ├── entities/           # 实体页（人物、组织、产品等）
-    ├── concepts/           # 概念页（理论、方法、术语等）
-    ├── topics/             # 主题页（综合分析、比较）
-    ├── sources/            # 来源摘要（每条原始资料的摘要）
-    └── solutions/          # 经验文档（compound 产生的解决方案和洞察）
+你想执行哪个操作？
+  1. init     - 初始化知识库
+  2. add      - 添加新资料
+  3. compound - 记录解决问题的经验
+  4. query    - 查询已有知识
+  5. lint     - 健康检查
 ```
 
-- **Raw Sources** - 原始文档，不可变，事实来源
-- **Wiki** - LLM 生成的 Markdown，LLM 完全拥有，使用 `[[wikilink]]` 互联
+### Step 2: 检查是否已初始化
 
-> **关于 Schema 层**：Karpathy 原文提到第三层 Schema（CLAUDE.md/AGENTS.md），用于告诉 LLM 如何工作。在我们的设计中，这个职责由 skill 文件本身承担（SKILL.md 定义架构和规范，init/add/query/lint 定义工作流），因此不需要在目标项目中单独维护 Schema 文件。
+在任何操作之前（init 本身除外），检查 `~/llm-wiki/` 目录是否存在：
 
-## 文件命名规范
+- **存在** → 继续执行目标操作
+- **不存在** → 先自动执行 init，不询问用户，然后再执行目标操作
 
-| 类型 | 路径格式 | 示例 |
-|------|----------|------|
-| 来源摘要 | `wiki/sources/YYYY-MM-DD-简短名称.md` | `wiki/sources/2026-04-06-attention-paper.md` |
-| 实体页 | `wiki/entities/名称.md` | `wiki/entities/transformer.md` |
-| 概念页 | `wiki/concepts/概念名.md` | `wiki/concepts/self-attention.md` |
-| 主题页 | `wiki/topics/主题名.md` | `wiki/topics/encoder-vs-decoder.md` |
+```bash
+# 检测方法
+ls ~/llm-wiki/wiki/index.md 2>/dev/null
+```
 
-所有文件名使用英文小写 + 连字符。
+---
 
-## 页面模板
+## 操作：init（初始化）
 
-### 来源摘要页（`wiki/sources/`）
+### 什么时候执行
+
+- 用户明确要求初始化
+- 其他操作前检测到 `~/llm-wiki/` 不存在时自动执行
+
+### 工作流
+
+#### 1. 创建目录结构
+
+```bash
+mkdir -p ~/llm-wiki/raw/{articles,papers,books,notes,assets}
+mkdir -p ~/llm-wiki/wiki/{entities,concepts,topics,sources,solutions}
+```
+
+如果用户之前的对话中提到了知识库主题，据此调整 `raw/` 子目录。
+
+#### 2. 创建 index.md
+
+```markdown
+# Wiki Index
+
+## 概览
+- [[overview]] - 整体综述
+
+## 来源
+<!-- 摄入的原始资料摘要，按时间倒序 -->
+
+## 实体
+<!-- 人物、组织、产品等，按名称排序 -->
+
+## 概念
+<!-- 理论、方法、术语等，按名称排序 -->
+
+## 主题
+<!-- 综合分析、比较等，按名称排序 -->
+
+## 经验
+<!-- 解决问题的经验和洞察（compound 产生） -->
+```
+
+#### 3. 创建 log.md
+
+```markdown
+# Wiki Log
+
+<!-- 操作记录按时间追加在此，格式：## [YYYY-MM-DD] 操作类型 | 描述 -->
+```
+
+#### 4. 创建 overview.md
+
+```markdown
+---
+type: overview
+created: YYYY-MM-DD
+---
+
+# 知识库概览
+
+> 本 Wiki 由 LLM 自动维护。你负责选题和提问，LLM 负责总结、交叉引用、归档和维护。
+
+## 当前状态
+- 来源数量：0
+- 总页面数：0（含 index、log、overview）
+- 最近更新：-
+
+## 核心发现
+<!-- 随着知识积累，这里将总结最重要的发现 -->
+```
+
+#### 5. 输出确认
+
+```
+Wiki 知识库已初始化！ ~/llm-wiki/
+
+接下来你可以：
+  - 把资料放入 raw/ 目录，我来整理（add）
+  - 给我链接或文本，我帮你保存并处理（add）
+  - 解决了问题后告诉我，我帮你记录（compound）
+  - 随时问我关于 Wiki 中已有知识的问题（query）
+  - 让我检查 Wiki 的健康状况（lint）
+```
+
+如果是自动初始化（非用户主动要求），简化输出为一行：`已自动初始化知识库 ~/llm-wiki/`，然后继续执行目标操作。
+
+---
+
+## 操作：add（添加资料）
+
+处理新的原始资料，将知识整合进 Wiki。一条新资料可能影响 10-15 个 Wiki 页面。
+
+### 工作流
+
+#### 1. 确定待处理资料
+
+按优先级：
+1. **用户指定了具体资料**（链接、文本、文件路径）→ 只处理该资料
+2. **用户说"处理新资料"** → 扫描 `raw/` 找未处理文件
+3. **用户说"处理所有新资料"** → 批量处理
+
+**判断已处理/未处理：** 对比 `raw/` 文件和 `wiki/sources/` 中来源摘要页的 `source` frontmatter 字段。有对应摘要页 = 已处理。
+
+```
+发现 3 个未处理的资料：
+  1. raw/articles/attention-paper.pdf
+  2. raw/notes/meeting-2026-04-05.md
+  3. raw/papers/bert-paper.pdf
+
+要全部处理，还是选择其中几个？（默认全部）
+```
+
+#### 2. 保存原始资料（仅 URL/文本需要）
+
+- **URL** → 抓取保存到 `raw/articles/`
+- **文本** → 保存到 `raw/notes/`
+- **已有文件** → 直接读取
+
+#### 3. 阅读并提取
+
+读取原始资料，识别核心论点、关键实体、重要概念、数据/事实、与其他来源的关系。
+
+#### 4. 与用户讨论（推荐，批量处理时跳过）
+
+```
+这篇资料的核心要点：
+1. ...
+2. ...
+
+涉及的关键实体/概念：A、B、C
+你想重点关注哪些方面？
+```
+
+#### 5. 创建来源摘要页
+
+在 `wiki/sources/` 创建，文件名：`YYYY-MM-DD-简短名称.md`
 
 ```markdown
 ---
@@ -109,7 +220,6 @@ tags: [tag1, tag2]
 
 ## 核心要点
 - 要点 1
-- 要点 2
 
 ## 关键引用
 > 原文引用
@@ -120,10 +230,15 @@ tags: [tag1, tag2]
 
 ## 衍生概念
 - [[concept-a]]
-- [[entity-b]]
 ```
 
-### 实体/概念页（`wiki/entities/` / `wiki/concepts/`）
+#### 6. 更新实体页和概念页
+
+对资料涉及的每个实体和概念：
+- **已有页面** → 追加新信息，标注来源
+- **新页面** → 使用模板创建
+
+实体/概念页模板：
 
 ```markdown
 ---
@@ -140,73 +255,243 @@ sources: [source-a, source-b]
 
 ## 关键信息
 - 信息点 1（来源：[[source-a]]）
-- 信息点 2（来源：[[source-b]]）
 
 ## 关联
-- 相关概念：[[concept-x]], [[concept-y]]
-- 相关实体：[[entity-z]]
+- 相关概念：[[concept-x]]
 
 ## 开放问题
 - 尚未解答的问题
 ```
 
-### 主题页（`wiki/topics/`）
+注意：
+- 新信息与已有内容矛盾时，保留两个版本，明确标注
+- 每个事实声明都标注来源
+
+#### 7. 更新主题页（如有需要）
+
+#### 8. 更新 index.md、overview.md
+
+#### 9. 追加 log.md
+
+```markdown
+## [YYYY-MM-DD] add | 资料标题
+
+- **来源**：raw/path/to/file
+- **新增页面**：page-a, page-b
+- **更新页面**：page-c, page-d
+- **影响范围**：N 个页面
+```
+
+#### 10. 输出总结
+
+```
+处理完成。
+
+新增：
+  - 来源摘要：[[source-name]]
+  - 实体：[[entity-a]], [[entity-b]]
+  - 概念：[[concept-c]]
+
+更新：
+  - [[concept-d]] - 补充了关于 X 的说明
+
+⚠️ 发现矛盾：
+  - [[concept-d]] 中关于 Y 的描述与 [[source-old]] 不一致
+```
+
+---
+
+## 操作：compound（经验积累）
+
+将解决问题的经验文档化，写入 `wiki/solutions/`。知识复利：第一次花时间研究，文档化后下次几分钟解决。
+
+### 什么时候执行
+
+- 用户说"搞定了"、"修好了"、"问题解决了"
+- 刚完成一个有价值的调试、探索或分析过程
+- 发现了值得记录的模式、技巧或最佳实践
+
+**不值得记录的：** 拼写错误、明显小修改、一次性不重现的问题。告知用户原因即可。
+
+### 双轨道
+
+**Bug Track**（问题解决）：适用于修了 bug、解决了错误。
 
 ```markdown
 ---
-type: topic
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
-sources: [source-a, source-b, source-c]
+type: solution
+track: bug
+date: YYYY-MM-DD
+tags: [tag1, tag2]
 ---
 
-# 主题标题
+# 问题标题
 
-## 摘要
-综合概述。
+## 问题
+1-2 句话描述。
 
-## 分析
-来自多个来源的综合分析。
+## 症状
+- 可观察到的异常行为
 
-## 对比
-| 维度 | A | B |
-|------|---|---|
-| ... | ... | ... |
+## 调查过程
+1. ❌ 尝试 A → 失败原因
+2. ✅ 最终方案
 
-## 结论
-综合结论。
+## 根因
+原因解释。
 
-## 参考
-- [[source-a]]
-- [[source-b]]
+## 解决方案
+\`\`\`
+// 修改前
+...
+// 修改后
+...
+\`\`\`
+
+## 防范
+如何避免再次出现。
+
+## 关联
+- [[concept-a]]
 ```
+
+**Knowledge Track**（经验洞察）：适用于总结了模式、最佳实践、工作流技巧。
+
+```markdown
+---
+type: solution
+track: knowledge
+date: YYYY-MM-DD
+tags: [tag1, tag2]
+---
+
+# 洞察标题
+
+## 背景
+什么情况下产生的这个经验。
+
+## 指导
+具体的实践、模式或建议。
+
+## 为什么重要
+遵循或不遵循这个实践的影响。
+
+## 何时适用
+这个经验在什么条件下适用。
+
+## 关联
+- [[concept-a]]
+```
+
+### 工作流
+
+1. **从上下文提取信息** — 问题描述、调查过程、根因、解决方案、关键代码
+2. **选择轨道** — 解决具体问题 → Bug Track；总结经验/模式 → Knowledge Track
+3. **检查重叠** — 搜索 `wiki/solutions/` 是否已有类似文档。高重叠 → 更新已有文档；低或无 → 创建新文档
+4. **写入文档** — `wiki/solutions/YYYY-MM-DD-简短名称.md`
+5. **更新** index.md、overview.md、log.md
+6. **输出总结**
+
+---
+
+## 操作：query（查询知识）
+
+基于 Wiki 内容回答问题。好的回答归档回 Wiki。
+
+### 核心原则
+
+**好的回答应该归档回 Wiki。** 涉及多来源的综合分析、对比表格、新发现 → 保存为新的主题页。
+
+### 工作流
+
+1. **读取 index.md** 了解全貌
+2. **定位相关页面** — 找最相关的 2-5 个页面（含 sources、solutions）
+3. **综合回答** — 用 `[[wikilink]]` 引用，标注来源
+4. **归档有价值的回答** — 保存为 `wiki/topics/` 新页面
+5. **建议后续探索** — 信息缺口、可补充的资料
+
+---
+
+## 操作：lint（健康检查）
+
+检测矛盾、孤儿页面、缺失概念等问题，保持 Wiki 长期健康。
+
+### 什么时候执行
+
+- 用户说"检查一下 wiki"、"整理一下知识库"
+- Wiki 积累到 20+ 页面时定期执行
+- 每次添加一批重要资料后
+
+### 6 项检查
+
+| 检查项 | 方法 |
+|--------|------|
+| 矛盾检测 | 对比不同页面中相同主题的描述 |
+| 过时信息 | 页面 updated 日期远早于相关来源 |
+| 孤儿页面 | 入站 `[[wikilink]]` 为 0 的页面 |
+| 缺失页面 | 被 `[[wikilink]]` 引用但未创建 |
+| 缺失交叉引用 | 共享 2+ 来源但未互链的页面 |
+| 数据缺口 | 概念页的"开放问题"、概览中未深入的方向 |
+
+### 工作流
+
+1. 读取全貌（`ls -R wiki/` + `wiki/index.md`）
+2. 逐项检查
+3. 生成报告（统计 + 按优先级列出问题）
+4. 询问用户是否自动修复（创建缺失页面、添加交叉引用等）
+5. 执行修复，更新 log.md
+
+---
+
+## 两层架构
+
+```
+~/llm-wiki/
+├── raw/                    # 原始资料（不可变）
+│   ├── articles/
+│   ├── papers/
+│   ├── books/
+│   ├── notes/
+│   └── assets/
+└── wiki/                   # LLM 维护的 Wiki
+    ├── index.md            # 内容目录
+    ├── log.md              # 操作日志
+    ├── overview.md         # 整体概览
+    ├── entities/           # 实体页
+    ├── concepts/           # 概念页
+    ├── topics/             # 主题页
+    ├── sources/            # 来源摘要
+    └── solutions/          # 经验文档
+```
+
+## 文件命名规范
+
+| 类型 | 路径格式 |
+|------|----------|
+| 来源摘要 | `wiki/sources/YYYY-MM-DD-简短名称.md` |
+| 实体页 | `wiki/entities/名称.md` |
+| 概念页 | `wiki/concepts/概念名.md` |
+| 主题页 | `wiki/topics/主题名.md` |
+| 经验文档 | `wiki/solutions/YYYY-MM-DD-简短名称.md` |
+
+所有文件名使用英文小写 + 连字符。
 
 ## 写作规范
 
 - 每个页面开头使用 YAML frontmatter（`type`, `date`, `tags`, `sources`）
-- 使用 `[[wikilink]]` 语法创建页面间链接
-- 每个事实声明都标注来源（`来源：[[source-name]]`）
-- 新来源与已有信息矛盾时，明确标注并保留两个版本
-- 保持页面简洁，每个页面聚焦一个主题
+- 使用 `[[wikilink]]` 创建页面间链接
+- 每个事实声明都标注来源
+- 新旧信息矛盾时，保留两个版本并标注
+- 保持页面简洁，聚焦一个主题
 
 ## Obsidian 集成
 
-Wiki 目录可直接用 Obsidian 打开：
-- **Graph View** - 查看知识网络的形状
-- **Web Clipper** - 浏览器扩展，快速将网页文章转为 Markdown 存入 `raw/`
-- **Dataview 插件** - 基于 frontmatter 生成动态表格
-- **Marp 插件** - 从 Wiki 内容生成幻灯片
-- **本地图片** - 设置附件文件夹路径为 `raw/assets/`
+Wiki 目录可直接用 Obsidian 打开：Graph View、Web Clipper、Dataview、Marp 插件。
 
 ## 适用场景
 
-**主动学习（llm-wiki:add）：**
-- **学术研究** - 深入某个主题，增量构建综合 Wiki
-- **阅读笔记** - 边读边记，构建角色、主题、情节的互联 Wiki
-- **竞品分析、尽职调查、旅行规划、课程笔记** - 任何需要长期积累知识的场景
+**主动学习（add）：**
+- 学术研究、阅读笔记、竞品分析、课程笔记
 
-**经验积累（llm-wiki:compound）：**
-- **个人成长** - 跟踪目标、健康、心理学，记录自我发现和反复出现的模式
-- **工程实践** - 记录 bug 修复、调试过程、最佳实践，让同类问题下次秒解
-- **团队知识库** - 从会议纪要、项目文档、客户反馈中持续提炼，解决方案可搜索可复用
-- **工作流优化** - 记录摸索出的技巧和踩过的坑，形成个人操作手册
+**经验积累（compound）：**
+- 工程实践（bug 修复、最佳实践）、团队知识库、工作流优化、个人成长
