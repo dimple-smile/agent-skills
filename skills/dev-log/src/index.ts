@@ -373,14 +373,20 @@ export async function startServer(): Promise<void> {
 }
 
 // Auto-start when run directly (ESM/CJS compatible)
-// 检查是否作为入口文件运行
 const runDirectly = () => {
-  // CJS 环境
+  // CJS
   if (typeof require !== 'undefined' && require.main === module) {
     return true;
   }
-  // ESM 环境：检查是否是 node 直接运行的
-  // 当被 import 时不会有这个条件
+  // ESM: check if this module is the entry point via process.argv
+  if (typeof process !== 'undefined' && process.argv) {
+    const entry = process.argv[1];
+    if (entry && (entry.endsWith('index.mjs') || entry.endsWith('index.cjs') || entry.endsWith('index.js'))) {
+      const entryDir = path.resolve(path.dirname(entry));
+      const thisDir = path.resolve(getDirname());
+      if (entryDir === thisDir) return true;
+    }
+  }
   return false;
 };
 

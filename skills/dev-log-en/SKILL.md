@@ -31,32 +31,31 @@ Send runtime logs via HTTP requests in real time, enabling AI to automatically r
 
 ## Starting the Server
 
+> **Important: Always use `nohup` to start in the background.** Otherwise, in environments like OpenCode or sub-agent scenarios, the server will be killed when the agent process exits.
+
 **Start command:**
 ```bash
-cd skills/dev-log && node dist/index.cjs
+nohup node skills/dev-log/dist/index.cjs &>/dev/null &
 ```
 
 The service will automatically:
 1. Start an HTTP server (random port)
 2. Start a local tunnel
-3. Print available addresses
+3. Write port, PID, and tunnel URL to files in the `dist/` directory
 
-**Example startup output:**
+**Wait for startup to complete:**
+```bash
+sleep 2 && cat skills/dev-log/dist/port.txt
 ```
-========================================
-Dev-log server is running
-========================================
 
-Available addresses:
-  Local:   http://localhost:54321
-  Network: http://192.168.1.100:54321
-  Tunnel:  https://abc123.loca.lt
+After the server starts, read port and addresses from files instead of relying on terminal output:
+- Port: `skills/dev-log/dist/port.txt`
+- Tunnel URL: `skills/dev-log/dist/tunnel-url.txt` (may take a few seconds)
+- PID: `skills/dev-log/dist/pid.txt`
 
-Usage:
-  - Local HTTP page: use Local address
-  - Mobile (same WiFi): use Network address
-  - HTTPS page / Remote: use Tunnel address
-========================================
+**Check server status:**
+```bash
+curl http://localhost:$(cat skills/dev-log/dist/port.txt)/
 ```
 
 ## Address Selection Guide
@@ -73,12 +72,12 @@ Usage:
 
 **Read all logs:**
 ```bash
-curl http://localhost:PORT/logs
+PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
 ```
 
 **Filter by sessionId:**
 ```bash
-curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
 ## Code Generation Rules
@@ -247,7 +246,7 @@ Net::HTTP.post(uri, {sessionId: 'SESSION_ID', time: 'TIME', type: 'LOG_TYPE', da
 
 After the user says "operation complete", the AI reads logs via HTTP:
 ```bash
-curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
 ### Step 2: Assess the Situation
@@ -301,19 +300,39 @@ Reason: HTTPS page cannot request HTTP, using Tunnel address
 - `DELETE /logs?sessionId=xxx` - Clear logs for a specific session
 - `GET /health` - Health check
 
-## Log Cleanup
+## Session Cleanup on Exit
 
-**Clear all logs:**
+> **Critical: The dev-log server is shared across sessions.** A single server instance is used by multiple AI conversations/agents simultaneously. **Never stop the server or clear all logs just because one session has ended.**
+
+When a debugging session ends, follow these steps:
+
+**Step 1: Clear only this session's logs**
 ```bash
-curl -X DELETE http://localhost:PORT/logs
+PORT=$(cat skills/dev-log/dist/port.txt) && curl -X DELETE "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
-**Clear logs for a specific session:**
+**Step 2: Check if there are other active sessions**
 ```bash
-curl -X DELETE "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
 ```
 
-> Tip: Clear old logs before starting a new debugging session to avoid confusion.
+**Step 3: Decide whether to stop the server based on the result**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Does GET /logs return an empty array []?                     │
+├─────────────────────────────────────────────────────────────┤
+│ ✅ Empty → No other active sessions, safe to stop:           │
+│            kill $(cat skills/dev-log/dist/pid.txt)           │
+│                                                              │
+│ ❌ Not empty → Other sessions still active, do NOT stop       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Prohibited actions:**
+- Never `kill` the server process when a session ends
+- Never use `DELETE /logs` (without sessionId) to clear all sessions' logs
+- Only stop the server after confirming no other active sessions exist
 
 ## Security Warning ⚠️
 
@@ -348,8 +367,9 @@ fetch('...', {body:JSON.stringify({data:sanitize({email, password})})})
 
 ## Notes
 
-1. **Sensitive data** - **Must filter sensitive fields**; never log passwords, tokens, etc.
-2. **Must inject probe log** - Used to determine whether it's a network issue or code not executing
-3. **Production environment** - Always remove debugging code
-4. **Error handling** - fetch must include `.catch(()=>{})` to avoid blocking main logic
-5. **Local development** - Only for local development; do not expose to the public internet
+1. **Shared server** - **The server is shared across sessions; never kill the process when a single session ends** — follow the "Session Cleanup on Exit" flow
+2. **Sensitive data** - **Must filter sensitive fields**; never log passwords, tokens, etc.
+3. **Must inject probe log** - Used to determine whether it's a network issue or code not executing
+4. **Production environment** - Always remove debugging code
+5. **Error handling** - fetch must include `.catch(()=>{})` to avoid blocking main logic
+6. **Local development** - Only for local development; do not expose to the public internet

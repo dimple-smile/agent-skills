@@ -31,32 +31,31 @@ tags:
 
 ## 服务启动
 
+> **重要：必须使用 `nohup` 后台启动**，否则在 OpenCode、子 agent 等场景下，服务会随着 agent 进程退出而被杀死。
+
 **启动命令：**
 ```bash
-cd skills/dev-log && node dist/index.cjs
+nohup node skills/dev-log/dist/index.cjs &>/dev/null &
 ```
 
 服务会自动：
 1. 启动 HTTP 服务（随机端口）
 2. 启动内网穿透（Tunnel）
-3. 打印可用地址
+3. 将端口、PID、Tunnel 地址写入 `dist/` 目录下的文件
 
-**启动输出示例：**
+**等待启动完成：**
+```bash
+sleep 2 && cat skills/dev-log/dist/port.txt
 ```
-========================================
-Dev-log server is running
-========================================
 
-Available addresses:
-  Local:   http://localhost:54321
-  Network: http://192.168.1.100:54321
-  Tunnel:  https://abc123.loca.lt
+服务启动后，通过文件读取端口和地址，而非依赖终端输出：
+- 端口：`skills/dev-log/dist/port.txt`
+- Tunnel 地址：`skills/dev-log/dist/tunnel-url.txt`（可能需要等几秒）
+- PID：`skills/dev-log/dist/pid.txt`
 
-Usage:
-  - Local HTTP page: use Local address
-  - Mobile (same WiFi): use Network address
-  - HTTPS page / Remote: use Tunnel address
-========================================
+**查看服务状态：**
+```bash
+curl http://localhost:$(cat skills/dev-log/dist/port.txt)/
 ```
 
 ## 地址选择指南
@@ -73,12 +72,12 @@ Usage:
 
 **读取所有日志：**
 ```bash
-curl http://localhost:PORT/logs
+PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
 ```
 
 **按 sessionId 过滤：**
 ```bash
-curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
 ## 代码生成规范
@@ -247,7 +246,7 @@ Net::HTTP.post(uri, {sessionId: 'SESSION_ID', time: 'TIME', type: 'LOG_TYPE', da
 
 用户说"操作完成了"后，AI 通过 HTTP 读取日志：
 ```bash
-curl "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
 ### Step 2: 判断情况
@@ -301,19 +300,39 @@ curl "http://localhost:PORT/logs?sessionId=sess_xxx"
 - `DELETE /logs?sessionId=xxx` - 清除特定会话的日志
 - `GET /health` - 健康检查
 
-## 日志清理
+## 会话结束清理流程
 
-**清除所有日志：**
+> **关键：dev-log 服务是多会话共享的**，一个服务实例会被多个 AI 会话/agent 同时使用。**绝对不能因为单个会话结束就停止服务或清除所有日志。**
+
+当一个调试会话结束时，按以下步骤清理：
+
+**Step 1: 清除本会话的日志**
 ```bash
-curl -X DELETE http://localhost:PORT/logs
+PORT=$(cat skills/dev-log/dist/port.txt) && curl -X DELETE "http://localhost:$PORT/logs?sessionId=sess_xxx"
 ```
 
-**清除特定会话的日志：**
+**Step 2: 检查是否还有其他活跃会话**
 ```bash
-curl -X DELETE "http://localhost:PORT/logs?sessionId=sess_xxx"
+PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
 ```
 
-> 建议：新一轮调试开始时，先清除旧日志避免混淆。
+**Step 3: 根据结果决定是否停止服务**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ GET /logs 返回空数组 []？                                     │
+├─────────────────────────────────────────────────────────────┤
+│ ✅ 空 → 没有其他活跃会话，可以安全停止服务：                    │
+│        kill $(cat skills/dev-log/dist/pid.txt)              │
+│                                                             │
+│ ❌ 不为空 → 还有其他会话在使用，绝对不能停止服务                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**禁止事项：**
+- 禁止在会话结束时直接 `kill` 服务进程
+- 禁止使用 `DELETE /logs`（不带 sessionId）清除所有会话的日志
+- 只有确认没有其他活跃会话后才能停止服务
 
 ## 安全警告 ⚠️
 
@@ -348,8 +367,9 @@ fetch('...', {body:JSON.stringify({data:sanitize({email, password})})})
 
 ## 注意事项
 
-1. **敏感数据** - **必须过滤敏感字段**，禁止记录密码、token 等
-2. **必须注入探测日志** - 用于判断是网络问题还是代码未执行
-3. **生产环境** - 务必移除调试代码
-4. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑
-5. **本地开发** - 仅用于本地开发，不要暴露到公网
+1. **服务共享** - **服务是多会话共享的，禁止因单个会话结束就 kill 进程**，必须按「会话结束清理流程」操作
+2. **敏感数据** - **必须过滤敏感字段**，禁止记录密码、token 等
+3. **必须注入探测日志** - 用于判断是网络问题还是代码未执行
+4. **生产环境** - 务必移除调试代码
+5. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑
+6. **本地开发** - 仅用于本地开发，不要暴露到公网
