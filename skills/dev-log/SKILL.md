@@ -1,375 +1,150 @@
 ---
 name: dev-log
-description: AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。支持 JavaScript、Python、Go、Swift、Kotlin 等 14 种语言。
-version: 2.0.0
+description: AI debugging collaboration. Collect runtime logs over HTTP and generate paste-ready log statements for 13 languages (JS, Python, Go, Swift, Kotlin, ...). After the user acts, the AI reads the logs itself — no screenshots or console copying. AI 调试协作，通过 HTTP 收集运行时日志，AI 自行查看分析，无需截图或复制控制台。
+version: 1.0.0
 tags:
   - debugging
   - frontend
   - developer-tools
 ---
 
-# Dev Log
+# dev-log
 
-将运行时日志通过 HTTP 请求实时发送，让 AI 能够自动获取并分析，无需用户手动复制控制台内容。
+将运行时日志通过 HTTP 请求实时收集到本地服务，AI 自行读取分析——无需截图、无需复制控制台输出。AI 负责埋点，用户负责操作，AI 负责读日志。
 
-## When to Use
+## 何时使用
 
-**AI 应该主动判断并使用此技能的情况：**
+主动在以下场景使用：
 
-1. **生成前端代码时** - 如果生成的代码可能需要调试/验证，默认使用 dev-log 收集日志
-2. **用户说"帮我调试"、"有问题"、"看看为什么"** - 需要查看运行时状态时
-3. **需要追踪异步流程** - fetch、Promise、async/await 的执行过程
-4. **需要验证逻辑** - 表单验证、状态更新、条件判断等
-5. **需要查看变量值** - 特别是动态生成或用户输入的值
-6. **用户说"操作完成了"、"你看下"、"好了"** - 提示用户已完成操作，AI 应该读取日志
+1. 你生成的前端代码可能需要调试 / 验证。
+2. 用户说「帮我看看」「有问题」「检查一下为什么」。
+3. 需要追踪异步流程（fetch、Promise、async/await）。
+4. 需要查看变量的运行时值（尤其是用户输入或动态计算的值）。
 
-**不需要使用的情况：**
-- 纯静态内容生成（如 HTML 模板）
-- 非常简单的一次性验证
-- 用户明确表示不需要调试
-- 代码完全是后端的（Node.js 服务端）
+**不要用于**：纯静态内容、琐碎的一次性检查、或纯后端（Node 服务端）代码——后者直接看 stdout 即可。
 
-## 服务启动
+## 命令
 
-> **重要：必须使用 `nohup` 后台启动**，否则在 OpenCode、子 agent 等场景下，服务会随着 agent 进程退出而被杀死。
+所有操作通过一个 CLI 完成，用 `npx @dev-log/cli` 调用。
 
-**启动命令：**
+> **提示：** 首次执行 npx 会弹出安装确认（`Ok to proceed?`），agent 自动执行时会卡住。建议加 `-y` 跳过：`npx -y @dev-log/cli <command>`。下方示例为简洁省略了 `-y`。
+
 ```bash
-nohup node skills/dev-log/dist/index.cjs &>/dev/null &
+npx @dev-log/cli start                            # 启动日志服务（端口 7331，后台 daemon）
+npx @dev-log/cli gen --lang <lang> [options]      # 生成可直接粘贴的日志语句
+npx @dev-log/cli logs [--session <id>]            # 读取已收集的日志
+npx @dev-log/cli clear [--session <id>]           # 清除日志（不传 --session 清全部）
+npx @dev-log/cli status                           # 查看服务状态
+npx @dev-log/cli tunnel                           # 可选：启动 HTTPS 隧道（HTTPS 页面 / 远程访问）
+npx @dev-log/cli stop                             # 停止服务
+npx @dev-log/cli --help                           # 查看所有命令和选项
 ```
 
-服务会自动：
-1. 启动 HTTP 服务（随机端口）
-2. 启动内网穿透（Tunnel）
-3. 将端口、PID、Tunnel 地址写入 `dist/` 目录下的文件
+### `gen` 选项
 
-**等待启动完成：**
+| 选项 | 说明 |
+|--------|---------|
+| `--lang <lang>` | 目标语言：`js` `ts` `python` `go` `swift` `kotlin` `dart` `cpp` `rust` `java` `csharp` `php` `ruby` |
+| `--type <type>` | 日志类型 — `state`（默认）、`error`、`validation`、`click`、`request` 等 |
+| `--data <expr>` | 数据负载，用目标语言的字面量/表达式（如 `{count:1}`） |
+| `--ready` | 生成 `__ready__` 连通性探测，而非业务日志 |
+| `--session <id>` | 复用 sessionId（默认：生成新的 `sess_xxxxxxxx`） |
+| `--url <url>` | 端点 URL（默认：`http://localhost:7331`） |
+
+`gen` **只输出代码**到 stdout——捕获后插入用户源码。它会自动注入 sessionId、时间戳表达式，以及（使用 `--ready` 时）`__ready__` 探测。
+
+## 工作流程
+
+### 1. 启动服务
+
 ```bash
-sleep 2 && cat skills/dev-log/dist/port.txt
+npx @dev-log/cli start
 ```
 
-服务启动后，通过文件读取端口和地址，而非依赖终端输出：
-- 端口：`skills/dev-log/dist/port.txt`
-- Tunnel 地址：`skills/dev-log/dist/tunnel-url.txt`（可能需要等几秒）
-- PID：`skills/dev-log/dist/pid.txt`
+`start` 会 fork 出一个**后台 daemon**并立即返回——不需要 `nohup`、不需要 `&`，前台不阻塞。daemon 独立于 agent/子进程存活。确认它已启动：
 
-**查看服务状态：**
 ```bash
-curl http://localhost:$(cat skills/dev-log/dist/port.txt)/
+sleep 2 && npx @dev-log/cli status
 ```
 
-## 地址选择指南
+### 2. 选定 session id 并埋点
 
-| 场景 | 使用地址 | 说明 |
-|------|----------|------|
-| 本地 HTTP 页面 | `http://localhost:PORT` | Local 地址 |
-| 手机/平板（同一 WiFi） | `http://IP:PORT` | Network 地址 |
-| 本地 HTTPS 页面 | `https://xxx.loca.lt` | Tunnel 地址（自带 HTTPS） |
-| 手机/平板（不同网络） | `https://xxx.loca.lt` | Tunnel 地址 |
-| 远程服务器 / 虚拟机 | `https://xxx.loca.lt` | Tunnel 地址 |
+> **关键：** 每个调试目标选定**一个** `sess_xxxxxxxx`，并在**每次 `gen` 调用时都传入同一个**。如果不传 `--session` 连续调用两次 `gen`，会得到两个不同的随机 id，日志被拆分到不同会话——失去意义。务必始终传 `--session <同一个 id>`。
 
-## 读取日志
+先生成连通性探测，再生成业务日志：
 
-**读取所有日志：**
 ```bash
-PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
+# 连通性探测（始终第一个）
+npx @dev-log/cli gen --lang js --ready --session sess_a1b2c3d4
+
+# 业务日志
+npx @dev-log/cli gen --lang js --type state --data '{count: count}' --session sess_a1b2c3d4
+npx @dev-log/cli gen --lang js --type error --data '{msg: err.message}' --session sess_a1b2c3d4
 ```
 
-**按 sessionId 过滤：**
+将每条输出的代码插入用户源码的相应位置。
+
+> **移动端 / HTTPS 页面：** 默认的 `http://localhost:7331` 只适用于本地 HTTP 页面。对于 HTTPS 页面、移动端或远程机器，需要启动隧道并传入 `--url`：
+> ```bash
+> npx @dev-log/cli tunnel          # 输出 https://xxxx.loca.lt
+> npx @dev-log/cli gen --lang js --ready --session sess_a1b2c3d4 --url https://xxxx.loca.lt
+> ```
+
+### 3. 请用户操作
+
+告诉用户：「我已在关键位置添加了日志，请操作。」
+
+### 4. 读取并分析日志
+
+当用户说「好了」时，读取日志（务必用你的 session id 过滤，避免读到其他会话的数据）：
+
 ```bash
-PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
+npx @dev-log/cli logs --session sess_a1b2c3d4
 ```
 
-## 代码生成规范
+根据 `__ready__` 探测诊断：
 
-### 1. 必须注入 `__ready__` 探测日志
+| `__ready__` 是否存在 | 诊断 |
+|---|---|
+| ✅ 存在，且有业务日志 | 分析业务日志——完成。 |
+| ✅ 存在，但**没有**业务日志 | 探测到达了服务，但埋点的代码没执行。检查事件绑定 / 触发条件 / 用户是否真的执行了操作。 |
+| ❌ 完全没有探测 | 网络：页面无法连接服务。可能是 HTTPS 页面请求 HTTP 端点（MIXED_CONTENT）——改用隧道 URL。 |
 
-每次生成日志代码时，**必须**先注入一条 `__ready__` 探测日志，用于判断网络连通性：
+## 会话清理
+
+> **服务是跨会话共享的。** 绝不要因为一次对话结束就 kill 服务或 `clear`（不带 `--session`）。
+
+当一个调试目标完成时：
+
+```bash
+npx @dev-log/cli clear --session sess_a1b2c3d4     # 只清除本会话的日志
+npx @dev-log/cli status                            # 是否还有其他活跃会话？
+```
+
+**仅在** `status` 显示零活跃会话时才停止服务：
+
+```bash
+npx @dev-log/cli stop
+```
+
+## 安全
+
+- **绝不记录敏感信息。** 当数据包含凭据时，先过滤敏感字段再记录。
+- 敏感字段名（不区分大小写）：`password`、`pwd`、`token`、`secret`、`apikey`、`key`、`credit`、`cvv`、`ssn`、`auth`。
 
 ```javascript
-fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
-```
-
-### 2. 然后注入业务日志
-
-```javascript
-fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
-```
-
-## 多语言模板
-
-### JavaScript (Web)
-
-**探测日志：**
-```javascript
-fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'__ready__',data:{url:location.href,protocol:location.protocol}})}).catch(()=>{})
-```
-
-**业务日志：**
-```javascript
-fetch('HOST:PORT',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'SESSION_ID',time:new Date().toTimeString().split(' ')[0],type:'LOG_TYPE',data:DATA})}).catch(()=>{})
-```
-
-### Python
-
-```python
-import urllib.request, json
-urllib.request.urlopen(urllib.request.Request('HOST:PORT', data=json.dumps({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}).encode(), headers={'Content-Type':'application/json'}))
-```
-
-### Swift (iOS)
-
-```swift
-var request = URLRequest(url: URL(string: "HOST:PORT")!)
-request.httpMethod = "POST"
-request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-request.httpBody = try? JSONSerialization.data(withJSONObject: ["sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA])
-URLSession.shared.dataTask(with: request).resume()
-```
-
-### Kotlin (Android)
-
-```kotlin
-import okhttp3.*
-val client = OkHttpClient()
-val body = "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}".toRequestBody("application/json".toMediaType())
-val request = Request.Builder().url("HOST:PORT").post(body).build()
-client.newCall(request).execute()
-```
-
-### Go
-
-```go
-import (
-    "bytes"
-    "net/http"
-)
-body := bytes.NewBuffer([]byte(`{"sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA}`))
-http.Post("HOST:PORT", "application/json", body)
-```
-
-### Dart (Flutter)
-
-```dart
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-await http.post(
-  Uri.parse('HOST:PORT'),
-  headers: {'Content-Type': 'application/json'},
-  body: jsonEncode({'sessionId':'SESSION_ID','time':'TIME','type':'LOG_TYPE','data':DATA}),
-);
-```
-
-### C++
-
-```cpp
-#include <curl/curl.h>
-CURL* curl = curl_easy_init();
-curl_easy_setopt(curl, CURLOPT_URL, "HOST:PORT");
-curl_easy_setopt(curl, CURLOPT_POST, 1L);
-curl_easy_setopt(curl, CURLOPT_POSTFIELDS, "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}");
-struct curl_slist* headers = curl_slist_append(NULL, "Content-Type: application/json");
-curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-curl_easy_perform(curl);
-curl_easy_cleanup(curl);
-```
-
-### Rust
-
-```rust
-use reqwest::blocking::Client;
-let client = Client::new();
-let body = serde_json::json!({"sessionId":"SESSION_ID","time":"TIME","type":"LOG_TYPE","data":DATA});
-client.post("HOST:PORT").json(&body).send();
-```
-
-### Java
-
-```java
-import java.net.*;
-import java.net.http.*;
-var client = HttpClient.newHttpClient();
-var body = "{\"sessionId\":\"SESSION_ID\",\"time\":\"TIME\",\"type\":\"LOG_TYPE\",\"data\":DATA}";
-var request = HttpRequest.newBuilder()
-    .uri(URI.create("HOST:PORT"))
-    .header("Content-Type", "application/json")
-    .POST(HttpRequest.BodyPublishers.ofString(body))
-    .build();
-client.send(request, HttpResponse.BodyHandlers.ofString());
-```
-
-### C#
-
-```csharp
-using System.Net.Http;
-using System.Text.Json;
-var client = new HttpClient();
-var body = JsonSerializer.Serialize(new { sessionId = "SESSION_ID", time = "TIME", type = "LOG_TYPE", data = DATA });
-await client.PostAsync("HOST:PORT", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
-```
-
-### PHP
-
-```php
-$ch = curl_init('HOST:PORT');
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode(['sessionId'=>'SESSION_ID','time'=>'TIME','type'=>'LOG_TYPE','data'=>DATA]));
-curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-curl_exec($ch);
-curl_close($ch);
-```
-
-### Ruby
-
-```ruby
-require 'net/http'
-require 'json'
-uri = URI('HOST:PORT')
-Net::HTTP.post(uri, {sessionId: 'SESSION_ID', time: 'TIME', type: 'LOG_TYPE', data: DATA}.to_json, 'Content-Type' => 'application/json')
-```
-
-## 模板变量说明
-
-- `HOST`: 服务地址，根据场景选择：
-  - 本地 HTTP 页面 → `http://localhost`
-  - 手机/平板（同一 WiFi）→ Network IP（如 `http://192.168.1.100`，服务启动时显示）
-  - HTTPS 页面/远程 → Tunnel 地址（从 `skills/dev-log/dist/tunnel-url.txt` 读取）
-- `PORT`: 从 `skills/dev-log/dist/port.txt` 读取
-- `SESSION_ID`: AI 生成的会话 ID（格式：`sess_` + 8位随机字符）
-- `TIME`: 时间戳（如 `14:23:05` 或 `new Date().toTimeString().split(' ')[0]`）
-- `LOG_TYPE`: 日志类型（建议：`state`/`error`/`validation`/`request`/`response`/`click` 等）
-- `DATA`: 要记录的任意数据对象（**必须过滤敏感信息**）
-
-## 诊断流程
-
-### Step 1: 读取日志
-
-用户说"操作完成了"后，AI 通过 HTTP 读取日志：
-```bash
-PORT=$(cat skills/dev-log/dist/port.txt) && curl "http://localhost:$PORT/logs?sessionId=sess_xxx"
-```
-
-### Step 2: 判断情况
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 有 __ready__ 日志？                                          │
-├─────────────────────────────────────────────────────────────┤
-│ ✅ 有 → 网络连接正常                                          │
-│         有业务日志？                                          │
-│         ├─ 有 → 分析日志，解决问题                            │
-│         └─ 无 → 代码未执行                                    │
-│              → 确认用户是否真的操作了                          │
-│              → 检查事件绑定、触发条件是否正确                    │
-│                                                             │
-│ ❌ 没有 → 网络问题，让用户确认场景：                           │
-│                                                             │
-│   "没有收到日志，请确认你的访问场景：                           │
-│                                                             │
-│    A. 本地浏览器 HTTP 页面                                    │
-│    B. 本地浏览器 HTTPS 页面                                   │
-│    C. 手机/平板（同一 WiFi）                                  │
-│    D. 手机/平板（不同网络）/ 远程服务器"                       │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Step 3: 根据场景换地址
-
-| 场景 | 当前地址 | 换成 |
-|------|----------|------|
-| A | localhost | 刷新页面重试 |
-| B | http://localhost | Tunnel 地址（自带 HTTPS） |
-| C | localhost | Network IP |
-| D | localhost | Tunnel 地址 |
-
-**换地址时清晰展示：**
-```
-修改前：fetch('http://localhost:PORT', {...})
-修改后：fetch('https://xxx.loca.lt', {...})
-原因：HTTPS 页面无法请求 HTTP，使用 Tunnel 地址
-```
-
-**注意：不需要重启服务**，因为服务启动时已经开启了所有地址。
-
-## API 端点
-
-- `GET /` - 查看服务运行状态和可用地址
-- `POST /` 或 `POST /logs` - 提交日志
-- `GET /logs` - 获取所有日志（可选 `?sessionId=xxx` 过滤）
-- `DELETE /logs` - 清除所有日志
-- `DELETE /logs?sessionId=xxx` - 清除特定会话的日志
-- `GET /health` - 健康检查
-
-## 会话结束清理流程
-
-> **关键：dev-log 服务是多会话共享的**，一个服务实例会被多个 AI 会话/agent 同时使用。**绝对不能因为单个会话结束就停止服务或清除所有日志。**
-
-当一个调试会话结束时，按以下步骤清理：
-
-**Step 1: 清除本会话的日志**
-```bash
-PORT=$(cat skills/dev-log/dist/port.txt) && curl -X DELETE "http://localhost:$PORT/logs?sessionId=sess_xxx"
-```
-
-**Step 2: 检查是否还有其他活跃会话**
-```bash
-PORT=$(cat skills/dev-log/dist/port.txt) && curl http://localhost:$PORT/logs
-```
-
-**Step 3: 根据结果决定是否停止服务**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ GET /logs 返回空数组 []？                                     │
-├─────────────────────────────────────────────────────────────┤
-│ ✅ 空 → 没有其他活跃会话，可以安全停止服务：                    │
-│        kill $(cat skills/dev-log/dist/pid.txt)              │
-│                                                             │
-│ ❌ 不为空 → 还有其他会话在使用，绝对不能停止服务                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**禁止事项：**
-- 禁止在会话结束时直接 `kill` 服务进程
-- 禁止使用 `DELETE /logs`（不带 sessionId）清除所有会话的日志
-- 只有确认没有其他活跃会话后才能停止服务
-
-## 安全警告 ⚠️
-
-**敏感数据保护（重要）：**
-- **禁止记录敏感信息**：密码、token、API key、信用卡号、身份证号等
-- AI 生成日志代码时，**必须自动过滤敏感字段**，使用 `***` 或 `REDACTED` 替代
-
-**敏感字段自动过滤规则：**
-```javascript
-// ❌ 错误示例 - 直接记录可能包含敏感信息的表单数据
-fetch('...', {body:JSON.stringify({data:{password:form.password.value}})})
-
-// ✅ 正确示例 - 过滤敏感字段后再记录
-const sanitize = (obj) => {
-  const sensitive = ['password','pwd','token','secret','key','credit','ssn','apikey'];
-  const safe = {...obj};
-  for (const k of Object.keys(safe)) {
-    if (sensitive.some(s => k.toLowerCase().includes(s))) safe[k] = '***';
-  }
-  return safe;
+// 记录前剥离敏感字段
+const safe = (o) => {
+  const k = ['password','pwd','token','secret','key','credit','cvv','ssn','auth'];
+  return Object.fromEntries(Object.entries(o).map(([n,v]) =>
+    [n, k.some(s => n.toLowerCase().includes(s)) ? '***' : v]));
 };
-fetch('...', {body:JSON.stringify({data:sanitize({email, password})})})
-// 结果: {data:{email:'user@example.com', password:'***'}}
 ```
 
-**必须过滤的敏感字段名（不区分大小写）：**
-- `password`, `pwd`, `pass`
-- `token`, `access_token`, `refresh_token`, `auth`
-- `secret`, `api_key`, `apikey`, `key`
-- `credit_card`, `card_number`, `cvv`
-- `ssn`, `id_number`, `passport`
+## 备注
 
-## 注意事项
-
-1. **服务共享** - **服务是多会话共享的，禁止因单个会话结束就 kill 进程**，必须按「会话结束清理流程」操作
-2. **敏感数据** - **必须过滤敏感字段**，禁止记录密码、token 等
-3. **必须注入探测日志** - 用于判断是网络问题还是代码未执行
-4. **生产环境** - 务必移除调试代码
-5. **错误处理** - fetch 必须加 `.catch(()=>{})` 避免阻塞主逻辑
-6. **本地开发** - 仅用于本地开发，不要暴露到公网
+1. 服务将日志和 PID 写入 `$TMPDIR/dev-log/`（系统临时目录）——已安装的包目录保持干净。
+2. 固定端口 `7331`；无随机端口，无需读取端口文件。
+3. `start` 作为后台 daemon 运行——不需要 `nohup`/`&`。用 `npx @dev-log/cli stop` 停止。
+4. 发布前务必移除所有调试埋点代码。
+5. 仅限本地开发——不要暴露到公网。

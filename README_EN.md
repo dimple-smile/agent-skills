@@ -10,7 +10,7 @@ dimple-smile's AI agent skills collection, hosted on [skills.sh](https://skills.
 
 AI debugging collaboration solution. Collects runtime logs via HTTP requests, allowing AI to automatically analyze logs after user operations - no screenshots or console copying needed.
 
-**Supports 14 Languages:** JavaScript, TypeScript, Python, Go, PHP, Ruby, Java, C++, C#, Rust, Swift, Kotlin, Dart, R
+**Supports 13 Languages:** JavaScript, TypeScript, Python, Go, PHP, Ruby, Java, C++, C#, Rust, Swift, Kotlin, Dart
 
 **Problem Solved:**
 
@@ -23,26 +23,28 @@ Traditional debugging requires developers to open the console, take screenshots,
 - View variable values (especially dynamic or user input)
 
 **Features:**
-- Auto-start HTTP log server (random port)
-- Tunnel support (HTTPS pages / remote access)
-- Session isolation (sessionId filtering)
-- Multi-language templates
-- Sensitive data filtering
+- One CLI command generates log code for 13 languages (`npx dev-log gen`)
+- Fixed-port HTTP server (7331) — no random ports or port files
+- Optional tunnel for HTTPS pages / remote access
+- Session isolation (sessionId filtering), shared multi-session server
+- Auto-injected `__ready__` connectivity probe and timestamps
 
 **Typical Workflow:**
 
-1. **Describe Problem** - "Help me debug xxx issue"
-2. **Auto Logging** - AI adds log collection at key points
+1. **Start server** - `npx dev-log start`
+2. **Instrument** - `npx dev-log gen --lang js --type state --data '{...}'`; AI inserts the printed snippet at key points
 3. **Wait for Action** - AI says "Logs added, please operate"
 4. **Complete Action** - User says "I've completed the operation"
-5. **Auto Analysis** - AI reads logs and analyzes the issue
+5. **Auto Analysis** - `npx dev-log logs --session sess_xxx`; AI reads and analyzes
 
 No screenshots or log copying needed - AI handles debugging autonomously.
 
 **Install:**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log-en
+npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 ```
+
+> The dev-log CLI is also published to npm and works standalone: `npx @dev-log/cli start`
 
 ### llm-wiki
 
@@ -96,7 +98,6 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
 
 # English
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log-en
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
 ```
 

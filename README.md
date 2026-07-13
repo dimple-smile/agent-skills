@@ -10,7 +10,7 @@ dimple-smile 的 AI 编程代理技能集合，托管于 [skills.sh](https://ski
 
 AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用户操作完成后 AI 可自行查看分析，无需截图或复制控制台。
 
-**支持 14 种语言：** JavaScript、TypeScript、Python、Go、PHP、Ruby、Java、C++、C#、Rust、Swift、Kotlin、Dart、R
+**支持 13 种语言：** JavaScript、TypeScript、Python、Go、PHP、Ruby、Java、C++、C#、Rust、Swift、Kotlin、Dart
 
 **解决的问题：**
 
@@ -23,19 +23,19 @@ AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用�
 - 查看变量值（特别是动态生成或用户输入的值）
 
 **功能特性：**
-- 自动启动 HTTP 日志服务（随机端口）
-- 内网穿透支持（HTTPS 页面/远程访问）
-- 会话隔离（sessionId 过滤）
-- 多语言模板
-- 敏感数据过滤
+- 一条 CLI 命令生成 13 种语言的日志代码（`npx dev-log gen`）
+- 固定端口 HTTP 服务（7331），无需随机端口或端口文件
+- 内网穿透可选（HTTPS 页面/远程访问）
+- 会话隔离（sessionId 过滤），多会话共享服务
+- 自动注入 `__ready__` 连通性探测与时间戳
 
 **典型工作流：**
 
-1. **提出问题** - 「帮我看看 xxx 问题」
-2. **自动埋点** - AI 在关键位置写入日志收集语句
+1. **启动服务** - `npx dev-log start`
+2. **生成埋点** - `npx dev-log gen --lang js --type state --data '{...}'`，AI 将打印的代码插入关键位置
 3. **等待操作** - AI 告知「已在关键位置添加日志，请操作」
 4. **完成操作** - 用户操作完成后说「我已操作完成」
-5. **自动分析** - AI 自行查看日志，分析问题
+5. **自动分析** - `npx dev-log logs --session sess_xxx`，AI 自行读取并分析
 
 整个过程无需截图或复制日志，AI 完全自主完成调试分析。
 
@@ -43,6 +43,8 @@ AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用�
 ```bash
 npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 ```
+
+> dev-log 的 CLI 也已发布到 npm，可独立使用：`npx @dev-log/cli start`
 
 ### llm-wiki
 
@@ -96,7 +98,6 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
 
 # English
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log-en
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
 ```
 

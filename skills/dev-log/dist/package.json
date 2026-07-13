@@ -1,0 +1,34 @@
+{
+  "name": "@dev-log/cli",
+  "version": "1.0.0",
+  "description": "AI debugging collaboration — collect runtime logs via HTTP and generate paste-ready log statements for 13 languages.",
+  "bin": {
+    "dev-log": "cli.cjs"
+  },
+  "main": "cli.cjs",
+  "files": [
+    "cli.cjs",
+    "README.md"
+  ],
+  "keywords": [
+    "dev-log",
+    "ai-agent",
+    "ai-debugging",
+    "agent-tools",
+    "agent-skills",
+    "llm",
+    "llm-tools",
+    "claude",
+    "cursor",
+    "runtime-logs",
+    "log-collection",
+    "debugging",
+    "developer-tools",
+    "cli"
+  ],
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

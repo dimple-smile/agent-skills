@@ -1,2 +1,4 @@
-dist
-!dist/index.*
+node_modules
+/dist/*
+!/dist/cli.cjs
+!/dist/package.json

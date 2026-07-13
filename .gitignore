@@ -8,4 +8,10 @@ Program.cs
 *.class
 obj/
 *.csproj
-dist
+dist/
+# ...but keep dev-log's published CLI binary
+!skills/dev-log/dist/
+!skills/dev-log/dist/cli.cjs
+skills/dev-log/dist/*
+!skills/dev-log/dist/cli.cjs
+**/.DS_Store

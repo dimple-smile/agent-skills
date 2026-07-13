@@ -1,42 +1,49 @@
 {
-  "name": "@dimple-smile/dev-log",
-  "version": "2.0.0",
-  "description": "AI debugging collaboration - collect runtime logs via HTTP requests. Supports 14 languages.",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.cts",
-  "exports": {
-    "require": {
-      "types": "./dist/index.d.cts",
-      "default": "./dist/index.cjs"
-    },
-    "import": {
-      "types": "./dist/index.d.mts",
-      "default": "./dist/index.mjs"
-    }
+  "name": "@dev-log/cli",
+  "version": "1.0.0",
+  "description": "AI debugging collaboration — collect runtime logs via HTTP and generate paste-ready log statements for 13 languages.",
+  "bin": {
+    "dev-log": "./dist/cli.cjs"
   },
+  "main": "./dist/cli.cjs",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --format=cjs --outfile=dist/index.cjs && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.mjs",
-    "start": "node dist/index.cjs",
-    "test": "vitest run"
+    "dev": "tsx src/cli.ts",
+    "build": "pkgroll && node scripts/postbuild.mjs",
+    "start": "node dist/cli.cjs start",
+    "release": "node scripts/release.mjs",
+    "test": "node test/gen.node-test.mjs && node test/gen-exec.mjs && node test/e2e.mjs && node test/robustness.mjs",
+    "test:judge0": "node test/gen-judge0.mjs",
+    "test:vitest": "vitest run"
   },
   "keywords": [
+    "dev-log",
+    "ai-agent",
+    "ai-debugging",
+    "agent-tools",
+    "agent-skills",
+    "llm",
+    "llm-tools",
+    "claude",
+    "cursor",
+    "runtime-logs",
+    "log-collection",
     "debugging",
-    "frontend",
     "developer-tools",
-    "ai",
-    "agent-skills"
+    "cli"
   ],
   "license": "ISC",
-  "dependencies": {
-    "localtunnel": "^2.0.2"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "esbuild": "^0.27.3",
-    "pkgroll": "^2.15.4",
+    "cac": "^7.0.0",
+    "localtunnel": "^2.0.2",
+    "pkgroll": "^2.27.1",
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0",
     "vitest": "^4.0.18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
