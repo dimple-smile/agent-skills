@@ -65,9 +65,9 @@ function indexHtml(pages, dir, token) {
   const d = new Date();
   const rows = pages.map((p, i) => {
     const num = String(i + 1).padStart(2, "0");
-    const title = esc(p.title || p.name.replace(/\.html$/, ""));
+    const title = esc(p.title || p.name.replace(/\\.html$/, ""));
     const dek = esc(p.dek);
-    const lvl = esc((p.level.match(/L\d/) || [""])[0]);
+    const lvl = esc((p.level.match(/L\\d/) || [""])[0]);
     const date = new Date(p.mtime).toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
     const hero = i === 0 && pages.length > 1;
     return `<a class="entry${hero ? " hero" : ""}" href="/${encodeURIComponent(p.name)}">
@@ -84,16 +84,46 @@ function indexHtml(pages, dir, token) {
 <html lang="zh-CN"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>aha · 概念书架</title>
+<script>
+/* 主题 bootstrap（防 FOUC）—— 与生成页共用 localStorage 键 */
+(() => { try {
+  const r = document.documentElement;
+  r.dataset.theme = localStorage.getItem("aha-theme") ||
+    (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const p = localStorage.getItem("aha-preset"); if (p) r.dataset.preset = p;
+} catch (e) {} })();
+</script>
 <style>
-:root{
+/* —— 6 象限 tokens（与 design-tokens.css 同步，仅保留书架用到的变量） —— */
+:root, :root[data-theme="dark"]{
   --bg:#161210;--surface:#1f1915;--panel:#27201a;--line:#423629;--line-2:#5c4b39;
   --t1:#f7f1e7;--t2:#d9cdba;--t3:#a99b82;--t4:#9b8f7c;
   --accent:#ffab2e;--accent-ink:#241a09;--accent-soft:rgba(255,171,46,.14);
 }
-@media (prefers-color-scheme: light){
-  :root{--bg:#fbf6ec;--surface:#ffffff;--panel:#f5eddd;--line:#ded1b6;--line-2:#c8b48f;
+:root[data-theme="light"]{
+  --bg:#fbf6ec;--surface:#ffffff;--panel:#f5eddd;--line:#ded1b6;--line-2:#c8b48f;
   --t1:#271f12;--t2:#5f5540;--t3:#72654b;--t4:#766851;
-  --accent:#8f4e00;--accent-ink:#fffaf0;--accent-soft:rgba(163,91,0,.11)}
+  --accent:#8f4e00;--accent-ink:#fffaf0;--accent-soft:rgba(163,91,0,.11);
+}
+:root[data-preset="pop"]{
+  --bg:#191324;--surface:#221b30;--panel:#2b2140;--line:#473868;--line-2:#604b8a;
+  --t1:#f7efff;--t2:#dccdf2;--t3:#ab99cd;--t4:#9586be;
+  --accent:#ff5d8f;--accent-ink:#30060f;--accent-soft:rgba(255,93,143,.15);
+}
+:root[data-preset="pop"][data-theme="light"]{
+  --bg:#fdf8ff;--surface:#ffffff;--panel:#f7edfe;--line:#e5d5f3;--line-2:#cbadf0;
+  --t1:#291838;--t2:#614b78;--t3:#76638e;--t4:#756689;
+  --accent:#b81b5e;--accent-ink:#fff5fa;--accent-soft:rgba(214,33,107,.10);
+}
+:root[data-preset="ink"]{
+  --bg:#0e131a;--surface:#161c26;--panel:#1c2430;--line:#333e4f;--line-2:#4a5768;
+  --t1:#eff3f8;--t2:#c9d2de;--t3:#97a3b4;--t4:#838e9e;
+  --accent:#5ea8ff;--accent-ink:#08172b;--accent-soft:rgba(94,168,255,.13);
+}
+:root[data-preset="ink"][data-theme="light"]{
+  --bg:#f6f9fc;--surface:#ffffff;--panel:#ecf1f7;--line:#d3dde8;--line-2:#b4c3d3;
+  --t1:#17222e;--t2:#4a5a6b;--t3:#5c6e82;--t4:#5d6e7d;
+  --accent:#1a5fc0;--accent-ink:#f4f9ff;--accent-soft:rgba(31,111,224,.10);
 }
 *{box-sizing:border-box}
 html{color-scheme:dark light}
@@ -140,6 +170,12 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
 .entry.hero .etitle{font-size:clamp(1.55rem,4.5vw,2.05rem);font-weight:750;white-space:normal;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .entry.hero .dek{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:.92rem}
+/* —— 主题/风格切换（编辑部式：纯文字，与分享链同排） —— */
+.themerow{display:flex;gap:1.2rem;align-items:baseline;margin-top:.5rem}
+.themerow button{background:none;border:none;padding:0;cursor:pointer;
+  font:600 .78rem/1 inherit;color:var(--t4);transition:color .18s;letter-spacing:.02em}
+.themerow button:hover,.themerow button:focus-visible{color:var(--accent);outline:none}
+.themerow .sep{color:var(--line-2);font-size:.7rem;user-select:none}
 /* —— 搜索 —— */
 .searchbar{display:flex;align-items:baseline;gap:.8rem;padding:.7rem .4rem;border-bottom:1px solid var(--line)}
 .searchbar input{flex:1;background:none;border:none;outline:none;color:var(--t1);
@@ -173,6 +209,11 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
       <p class="meta">${esc(dir)}</p>
     </div>
     <div>
+      <div class="themerow">
+        <button type="button" data-tb-theme aria-label="切换深浅色">◐</button>
+        <span class="sep">·</span>
+        <button type="button" data-tb-preset aria-label="切换配色风格">◈ 暖</button>
+      </div>
       <button type="button" class="sharelink" data-share>分享这面书架 ↗</button>
       <span class="sharest" data-share-status></span>
       <div class="shareurl" data-share-url hidden></div>
@@ -188,6 +229,29 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
   ${count ? rows : `<div class="empty"><b>书架还是空的</b>对一个概念说“aha 某某”，第一页图解会出现在这里。</div>`}
   <p class="foot">aha serve · 页面即链接 · npx @dimples/aha share 可直接开公网</p>
 </div>
+<script>
+/* [SHELF-THEME] 主题/风格切换（与生成页共用 localStorage 键） */
+(() => {
+  const root = document.documentElement;
+  const PRESETS = ["warm", "pop", "ink"];
+  const LABEL = { warm: "暖", pop: "跳", ink: "静" };
+  const themeBtn = document.querySelector("[data-tb-theme]");
+  const presetBtn = document.querySelector("[data-tb-preset]");
+  if (!themeBtn || !presetBtn) return;
+  const paint = () => { presetBtn.textContent = "◈ " + LABEL[root.dataset.preset || "warm"]; };
+  paint();
+  themeBtn.addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+    localStorage.setItem("aha-theme", root.dataset.theme);
+  });
+  presetBtn.addEventListener("click", () => {
+    const cur = root.dataset.preset || "warm";
+    root.dataset.preset = PRESETS[(PRESETS.indexOf(cur) + 1) % PRESETS.length];
+    localStorage.setItem("aha-preset", root.dataset.preset);
+    paint();
+  });
+})();
+</script>
 <script>
 /* [SHELF-SEARCH] 概念搜索 —— 原样复制（canonical 在 serve.mjs indexHtml） */
 (() => {
