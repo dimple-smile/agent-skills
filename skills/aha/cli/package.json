@@ -1,10 +1,10 @@
 {
   "name": "@dimples/aha",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI for the aha skill: quality gates (check), local server (serve) and Cloudflare quick-tunnel sharing (share) for generated explainer HTML pages.",
   "type": "module",
   "bin": {
-    "aha": "./src/cli.mjs"
+    "aha": "src/cli.mjs"
   },
   "files": [
     "src",
@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/dimple-smile/agent-skills/tree/main/skills/aha",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   }
 }
