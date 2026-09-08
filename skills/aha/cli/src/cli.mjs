@@ -3,6 +3,7 @@
 import { checkFile } from "./check.mjs";
 import { serveCommand, DEFAULT_PORT, startDaemon, stopDaemon } from "./serve.mjs";
 import { shareCommand } from "./share.mjs";
+import { newCommand } from "./new.mjs";
 
 const HELP = `aha —— 概念图解页面的质量门 / 本地服务 / 公网分享
 
@@ -62,6 +63,8 @@ export async function main(argv = process.argv.slice(2)) {
   const { cmd, positionals, opts } = parsed;
 
   switch (cmd) {
+    case "new":
+      return newCommand(positionals[0], positionals[1]);
     case "check":
       if (!positionals[0]) {
         console.error("用法: aha check <file.html>");

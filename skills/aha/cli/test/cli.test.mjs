@@ -54,3 +54,19 @@ test("B4 command-level: serve on occupied port exits 1 with friendly message", a
     blocker.close();
   }
 });
+
+test("aha new: scaffold passes all gates before any content fill", async () => {
+  const { scaffoldHtml } = await import("../src/new.mjs");
+  const { checkHtml } = await import("../src/check.mjs");
+  const html = scaffoldHtml("测试概念", "test-concept");
+  const res = checkHtml(html);
+  const failed = res.gates.filter(g => g.status === "fail");
+  assert.deepEqual(failed.map(g => g.id), [], `空槽骨架应过全部门: ${JSON.stringify(failed)}`);
+  // 槽标记齐全且唯一
+  for (const n of [1, 2, 3, 4, 5, 6, 7]) {
+    assert.ok(html.includes(`SLOT${n}`), `缺 SLOT${n}`);
+  }
+  assert.ok(html.includes("[SIM-ENGINE]"), "缺引擎");
+  assert.ok(html.includes("[TOOLBAR]"), "缺工具条");
+  assert.ok(html.includes("aha-design-tokens"), "缺 canonical tokens");
+});

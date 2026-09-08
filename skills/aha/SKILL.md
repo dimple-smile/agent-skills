@@ -40,79 +40,48 @@ tags:
 4. 读者是**聪明的、只是不熟悉这个领域的人** —— 尊重他们，不居高临下，
    禁用"很简单""显然""只要……就行"。
 
-## 工作流（五步）
+## 工作流（三步 · ~7 分钟版）
 
-### Step 1 · 读资产（有读预算）
+> **实际耗时预期**：模型推理占 ~6-7 min（写 200 行高质量解释的物理下限），
+> 工具调用 < 1 min。不要试图加速推理 —— 它是硬约束。能砍的只有：
+> 读文件（已归零）、浏览器验证（默认跳过）、探索性命令（禁止）。
+>
+> 原则：CLI 做施工（样板注入/check/serve），你只做内容创意。
 
-```
-skills/aha/assets/
-├── design-tokens.css   # 颜色/字号/组件类的唯一来源 —— 内联进页面，不修改
-├── reference.html      # 范例页 —— 每次生成都完整读一遍，学"形"
-├── simulator.html      # 步骤模拟器 —— 需要讲"随时间发生的过程"时读
-└── snippets/           # 片段 —— 按形式映射表选用时读
-    ├── comparison-cards.html   # 第 5 层对比
-    ├── flow-diagram.html       # 静态流程/结构
-    ├── boundary-callout.html   # 类比框/警示条/大白话
-    ├── takeaway-block.html     # 第 7 层收尾
-    ├── fable.md                # 寓言故事模式 —— 用户明确要求时才读（见下）
-    └── vgpu-field.html         # 着色器展示层（选配，见下）
-```
-
-预算：`reference.html` 每次必读（它定义页面的"形"）；
-simulator 与 snippets 只在用到时读；
-`DESIGN.md` 只在你考虑改 tokens 或用户质疑美学时读。
-
-### Step 2 · 校准起点
-
-分析用户的提问，判定起点级别（见下节），页首放对应徽章。
-
-### Step 3 · 生成页面
-
-写到 `~/.aha/<slug>.html` —— 所有生成页的统一主页（`aha serve` 默认服务
-此目录，索引页即历史列表，页面地址为 `端口/<slug>.html`）。用户指定位置则从之。
-
-**硬规则：**
-- 单文件自包含：内联全部 CSS/SVG/JS；渲染与核心解释**零远程依赖**
-  （外链只允许作为引用出处）
-- `design-tokens.css` **原样内联**（保留 `aha-design-tokens vN` 标记），
-  一字不改；页面自定义 CSS 允许（布局、自绘 SVG），但**取色只能 `var(--token)`**
-- tokens 块之外**禁止任何颜色字面量**（hex/rgb/hsl）—— `aha check` 会拦
-- **每页标配工具条**（`.toolbar`，从 reference.html 原样复制 markup + [TOOLBAR] 脚本）：
-  深浅色切换 / warm·pop·ink 风格切换 / 页内分享按钮（serve 环境一键隧道，
-  file:// 下自动转为 CLI 指引；经 *.trycloudflare.com 公开访问时分享按钮自动隐藏，公开访客保留主题/风格切换）。首访跟随系统明暗，选择记忆在 localStorage。
-  `</head>` 前放主题 bootstrap 三行脚本（从 reference.html 复制，防 FOUC 首帧闪烁）
-- 语义 HTML：`<title>` / `html[lang]` / viewport；全文恰好一个 `<h1>`；
-  标题层级不跳档；`<img>` 必带 alt
-- 生成非中文页面时，用页内 CSS 覆写 tokens 的中文伪内容与工具条文案：
-  `.takeaway::before{content:"Remember"}`、`.analogy-limit::before`、
-  `.compare-card .out::before`、`.fail .tag` 前缀、工具条三按钮文字与
-  `sim-controls` 按钮文字（后两者直接改 markup 文本）
-- **模拟器节点标签跟随页面语言**；仅当标签是专有技术标识符
-  （如 `ClientHello`、`Q·Kᵀ`）时保留原文。禁止为非英文页生造英文标签
-  （✗Merge、✗Isolate 这类普通词的直译梗）
-- **页面会被分享给从未提问的读者**：正文不得出现"你问的""你的第二问"
-  这类仅对原提问者成立的指代 —— 改成自足表述（"回到开头的问题"），
-  或在页首引用块保留原始问题
-- 每页结尾必须过一遍本文"质量门"小节
-
-### Step 4 · 质量门
+### Step 1 · 跑一条命令
 
 ```bash
-npx @dimples/aha check ~/.aha/<slug>.html
-# CLI 未从 npm 安装时的仓库内等价调用：
-node skills/aha/cli/src/cli.mjs check ~/.aha/<slug>.html
+npx @dimples/aha new <slug> "<概念名>"
 ```
 
-门不过 → 修 → 重跑。**每轮只修被点名的那一个问题**；连续两轮无改善 →
-停止修复，如实报告未解决的问题。不得为了过门删内容、藏溢出、缩字号。
+**零文件读取、零探索命令**。脚手架 = canonical tokens + 工具条 + 引擎 +
+七节空槽，未填即过 11 门。跑完这条命令直接进 Step 2，**不要 ls/find/grep
+skill 目录、不要读任何 assets 或 cli 源码**（四轮基准测试证明全是时间黑洞）。
 
-### Step 5 · 交付与回执
+### Step 2 · 一次 Edit 填完全部内容
 
-返回**可点击的文件链接**（粘贴 HTML 源码到聊天不算交付），并附固定回执：
+校准起点（见下节），把七层内容**一次性**写入一个大 Edit
+（old_string = 脚手架里从 `（SLOT1:` 到最后一个 SLOT 的整段，
+new_string = 全部真实内容，约 200 行）。
+内容约束见「七层骨架」「关键契约」「反模式」—— 不要读 reference.html。
+SVG 取色 `var(--cat-a/b/c)` / `var(--accent)` / `var(--warn)` / `var(--ok)`。
+
+### Step 3 · check + 交付（跳过浏览器验证）
+
+```bash
+npx @dimples/aha check ~/.aha/<slug>.html && npx @dimples/aha start
+```
+
+check 过 → `aha start` → 交付。**不要打开浏览器截图/点击模拟器** ——
+四轮基准测试证明浏览器验证加 100s 且收益有限（静态门已拦住大问题）。
+回执如实写 `视觉验证: skipped(基准测试模式)`。
+仅当用户后续反馈"页面有问题"时才打开浏览器检查。
+
+### 交付回执
 
 ```
 check: 11/11 门通过, 0 警告
-视觉验证: passed | skipped(无浏览器) | failed
+视觉验证: skipped(基准测试模式)
 校准: 起点 Lx（依据：<一句证据>）
 修复轮次: 0-2
 ```
@@ -128,11 +97,46 @@ http://127.0.0.1:7332/<slug>.html
 （N 用 `aha start` 输出里的实际篇数；三行都必须给出 —— 第一行直达本页，
 第二行是书架入口，第三行是寓言模式的唯一推销，用户不接话就到此为止。）
 
-有浏览器工具（如 agent-browser）时：窄屏 + 宽屏各截一次，亲眼确认无溢出、
-模拟器可步进，回执才能写 `passed`；没有就如实写 `skipped`。
-**没做过视觉验证，不得声称视觉验证通过。**
+### 生成硬规则（形式）
+- 单文件自包含，渲染零远程依赖（tokens/引擎/工具条已由 CLI 注入）
+- 取色只能 `var(--token)`，tokens 块外禁止 hex/rgb/hsl
+- 语义 HTML：恰好一个 `<h1>`，标题不跳档，img 必带 alt
+- 模拟器标签跟随页面语言（专有标识符 ClientHello/Q·Kᵀ 除外）
+- 正文不得有"你问的"等提问者指代（页面会被分享给未提问的读者）
 
-需要分享时：
+### 质量门（Step 3 的详情）
+
+```bash
+npx @dimples/aha check ~/.aha/<slug>.html
+```
+
+门不过 → 修 → 重跑。**每轮只修被点名的那一个问题**；连续两轮无改善 →
+停止修复，如实报告未解决的问题。不得为了过门删内容、藏溢出、缩字号。
+
+返回**可点击的文件链接**（粘贴 HTML 源码到聊天不算交付），并附固定回执：
+
+```
+check: 11/11 门通过, 0 警告
+视觉验证: skipped(基准测试模式)
+校准: 起点 Lx（依据：<一句证据>）
+修复轮次: 0-2
+```
+
+随后运行 `npx @dimples/aha start`（幂等：未运行则后台拉起守护，已运行则复用；
+仓库内等价 `node skills/aha/cli/src/cli.mjs start`），并把输出原样带给用户：
+
+```
+http://127.0.0.1:7332/<slug>.html
+你历史产生过 N 条概念图解，可以访问 http://127.0.0.1:7332 查看概念书架
+如果你还想通过一个寓言故事来方便记忆，请对我说：补充寓言故事
+```
+（N 用 `aha start` 输出里的实际篇数；三行都必须给出 —— 第一行直达本页，
+第二行是书架入口，第三行是寓言模式的唯一推销，用户不接话就到此为止。）
+
+**默认不做浏览器验证**（回执写 `skipped`）—— 11 道静态门已拦截布局/颜色/
+语法类问题；视觉问题等用户反馈后再开浏览器修（每次浏览器验证 +100s，
+基准测试证明对首轮交付收益有限）。仅当用户主动要求"看效果"或反馈
+页面有问题时，才打开浏览器截图验证。
 
 ```bash
 npx @dimples/aha serve            # 本地 7332，主页 = ~/.aha 历史列表
