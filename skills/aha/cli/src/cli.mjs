@@ -4,6 +4,9 @@ import { checkFile } from "./check.mjs";
 import { serveCommand, DEFAULT_PORT, startDaemon, stopDaemon } from "./serve.mjs";
 import { shareCommand } from "./share.mjs";
 import { newCommand } from "./new.mjs";
+import { readFileSync } from "node:fs";
+
+const VERSION = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 
 const HELP = `aha —— 概念图解页面的质量门 / 本地服务 / 公网分享
 
@@ -80,6 +83,10 @@ export async function main(argv = process.argv.slice(2)) {
       return stopCommand(positionals[0], opts);
     case "share":
       return shareCommand(positionals[0], opts);
+    case "--version":
+    case "-v":
+      console.log(VERSION);
+      break;
     case "--help":
     case "-h":
     case undefined:

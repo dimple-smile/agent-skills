@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "../src/cli.mjs";
 
 test("parseArgs: commands, positionals, --port N and --port=N", () => {
@@ -69,4 +72,10 @@ test("aha new: scaffold passes all gates before any content fill", async () => {
   assert.ok(html.includes("[SIM-ENGINE]"), "缺引擎");
   assert.ok(html.includes("[TOOLBAR]"), "缺工具条");
   assert.ok(html.includes("aha-design-tokens"), "缺 canonical tokens");
+});
+
+test("-v / --version prints package.json version", () => {
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const out = execFileSync(process.execPath, [new URL("../src/cli.mjs", import.meta.url).pathname, "-v"], { encoding: "utf8" }).trim();
+  assert.ok(out.includes(pkg.version), `输出应含版本号 ${pkg.version}，实际: ${out}`);
 });
