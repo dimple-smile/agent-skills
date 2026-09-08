@@ -4,12 +4,13 @@
 // 2. 未填充状态即通过 11 门（样板永远绿，只有内容 Edit 能弄红）
 // 3. 槽标记唯一（<!--SLOT:n-->），Edit 的 old_string 无歧义
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { CANONICAL_TOKENS } from "./canonical-tokens.mjs";
 
 export function scaffoldHtml(title, slug) {
-  const css = readFileSync(new URL("../../assets/design-tokens.css", import.meta.url), "utf8");
+  const css = CANONICAL_TOKENS; // canonical 已随 src/ 发布，不依赖仓库 assets/
   const lang = /[一-鿿]/.test(title) ? "zh-CN" : "en";
   return `<!DOCTYPE html>
 <html lang="${lang}">
