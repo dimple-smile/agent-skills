@@ -82,6 +82,29 @@ Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
 ```
 
+### aha
+
+Turn any complex concept into a **standalone, visually rich HTML explainer page** — layered from a one-liner through intuition to the real mechanism and its boundaries. Goal: a correct mental model, not the feeling of understanding.
+
+**Core mechanics:**
+
+| Mechanism | What it does |
+|---|---|
+| 7-layer skeleton | one-liner → why it exists → intuition (analogy **with explicit limits**) → real mechanism → commonly-confused neighbors → boundaries & failure modes → "Remember" |
+| Entry calibration | L1/L2/L3 starting depth inferred from the user's phrasing; adjusts entry point and analogy choice, never deletes layers |
+| Shipped assets | design tokens (3 presets × dark/light), a full reference page, a step-simulator scaffold, snippet library |
+| 11 quality gates | `aha check`: single h1 / heading order / head meta / img alt / tokens inlined & canonical-matched / no color literals outside tokens / class registry / script syntax / no questioner references / consistent failure tags / localized simulator labels |
+| Honest receipt | never claim visual verification that wasn't performed |
+
+**Workflow:** `/aha Transformer attention` → agent calibrates entry level → writes `~/.aha/<slug>.html` (self-contained, with theme/preset/share toolbar) → `aha check` (11 gates) → `aha start` (idempotent background daemon; receipt links the page + the shelf) → `aha serve` (local index of all generated pages) or `aha share` (free Cloudflare quick tunnel, no account needed).
+
+**Install:**
+```bash
+npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+```
+
+> CLI: `npx @dimples/aha check|serve|share` once published; until then run `node skills/aha/cli/src/cli.mjs <command>` from the repo.
+
 ## Installation
 
 **Install all skills:**
@@ -96,6 +119,7 @@ npx skills add dimple-smile/agent-skills
 # Chinese version
 npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
+npx skills add https://github.com/dimple-smile/agent-skills --skill aha
 
 # English
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en

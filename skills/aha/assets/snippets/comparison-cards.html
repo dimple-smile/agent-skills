@@ -1,0 +1,33 @@
+<!-- ============================================================
+     snippet: comparison-cards —— 容易混淆层（第 5 层）专用
+     ============================================================
+     适用（形式映射：关系/对比 → 对比卡片）：
+     · 2-4 个常被混为一谈的概念（如 搜索 / RAG / 微调）
+     · 对比维度必须是"各自改变什么"，不是特性罗列
+     规则：
+     · 每卡末尾必须有 .out 行（"输出：……"）—— 一句话说清它产出什么
+     · 被讲解的那个概念加 .compare-highlight
+     · 类别色：卡内 h3 可用 .c-cat-a / .c-cat-b / .c-cat-c 区分
+     · 样式全部来自 design-tokens.css（.compare .compare-card .out），
+       本片段自身不携带 CSS
+     ============================================================ -->
+
+<div class="compare">
+  <div class="compare-card">
+    <h3 class="c-cat-a">概念 A</h3>
+    <p class="t-2">它改变的是 X。一句话说它与被讲概念的根本不同。</p>
+    <p class="out">资料列表</p>
+  </div>
+
+  <div class="compare-card compare-highlight">
+    <h3>被讲解的概念（本页主角）</h3>
+    <p class="t-2">它改变的是 Y。为什么读者此刻该关心它。</p>
+    <p class="out">带上下文的回答</p>
+  </div>
+
+  <div class="compare-card">
+    <h3 class="c-cat-b">概念 C</h3>
+    <p class="t-2">它改变的是 Z。常见误配场景一句。</p>
+    <p class="out">改变后的模型行为</p>
+  </div>
+</div>

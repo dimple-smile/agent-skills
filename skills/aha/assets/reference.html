@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     aha reference page —— 范例页（定"形"）
+     ============================================================
+     主题：RAG（检索增强生成） · 起点 L1（零基础）
+     给生成 Agent 的规则：
+     · 看形不看事实 —— 学的是七层结构、类名用法、视觉密度、
+       类比边界怎么写、模拟器数据怎么填；不抄 RAG 的内容。
+     · 本页必须始终通过 `aha check`（它是 check 门的标准样本）。
+     · 页面专用布局类（.hero-* .ctx-* 等）允许存在；
+       颜色一律 var(--token)，本页无任何 tokens 块之外的颜色字面量。
+     ============================================================ -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG 是什么 · aha 图解</title>
+<style>
+/* ============================================================
+   aha-design-tokens v1.3.1 — 唯一合法的颜色/字号/圆角来源
+   ============================================================
+   规则（SKILL.md 契约）：
+   1. 页面必须原样内联本文件的 <style> 块（保留 aha-design-tokens 标记）。
+   2. 颜色只能通过 var(--token) 或本文件定义的语义类名使用。
+   3. tokens 块之外禁止出现 hex / rgb() / hsl() —— `aha check` 会扫描。
+   4. 页面自定义 CSS（布局、SVG 图形）允许，但取色必须 var()。
+   双轴换肤（archify theme × preset 模式）：
+   · data-theme = dark | light（明暗对等：每个颜色成对派生）
+   · data-preset = warm（默认·暖编辑部）| pop（活泼·糖果）| ink（冷静·专业）
+   只翻 <html> 属性换肤，组件代码零改动；预设只覆写颜色，不改字号与间距。
+   色距规则（v1.3.1）：cat-b 与 ok/info/accent/cat-c 四邻均须常视力 ΔE>20；
+   cat-a 勿与 accent/warn 相邻出现。ΔE>20 指常视力 —— 色觉缺陷下靠文字标签
+   冗余承载语义（对比卡标题始终有文字，不是仅靠颜色区分）。
+   ============================================================ */
+
+:root, :root[data-theme="dark"] {
+  /* 表面 */
+  --bg:      #161210;
+  --surface: #1f1915;
+  --panel:   #27201a;
+  --panel-2: #2f2620;
+  --line:    #423629;
+  --line-2:  #5c4b39;
+
+  /* 文本（4 级） */
+  --t-1: #f7f1e7;
+  --t-2: #d9cdba;
+  --t-3: #a99b82;
+  --t-4: #9b8f7c;
+
+  /* 语义色 */
+  --accent:      #ffab2e;  /* 金橙 —— 强调 / 当前行 */
+  --accent-ink:  #241a09;  /* accent 上的文字 */
+  --accent-soft: rgba(255, 171, 46, .14);
+  --warn:      #ff8577;    /* 珊瑚 —— 边界 / 警示 */
+  --warn-soft: rgba(255, 133, 119, .12);
+  --ok:        #6fe3a5;    /* 确认 / 成功路径 */
+  --ok-soft: rgba(111, 227, 165, .12);
+  --info:      #7fd4ea;    /* 中性信息 */
+  --info-soft: rgba(127, 212, 234, .12);
+
+  /* 概念类别色（对比卡 / 结构图分区，最多 3 类 + 中性） */
+  --cat-a: #f6a931;  --cat-a-soft: rgba(246, 169, 49,  .15);
+  --cat-b: #2897e2;  --cat-b-soft: rgba(40, 151, 226,  .15);
+  --cat-c: #c39bef;  --cat-c-soft: rgba(195, 155, 239, .15);
+  --cat-n: #b3a48c;  --cat-n-soft: rgba(179, 164, 140, .14); /* 中性 */
+
+  /* 字阶 */
+  --fs-display: clamp(2.2rem, 6vw, 3.4rem);
+  --fs-h1:      clamp(1.7rem, 4.5vw, 2.3rem);
+  --fs-h2:      clamp(1.3rem, 3.5vw, 1.6rem);
+  --fs-h3:      1.12rem;
+  --fs-body:    1.02rem;
+  --fs-small:   .88rem;
+  --fs-label:   .75rem;
+
+  /* 空间 / 圆角 / 其他 */
+  --sp-1: .35rem;  --sp-2: .7rem;  --sp-3: 1.1rem;
+  --sp-4: 1.7rem;  --sp-5: 2.6rem; --sp-6: 4rem;
+  --r-s: 8px;  --r-m: 14px;  --r-l: 22px;
+  --content-w: 46rem;
+  --shadow: 0 10px 34px rgba(0, 0, 0, .34);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+               "PingFang SC", monospace;
+}
+
+:root[data-theme="light"] {
+  --bg:      #fbf6ec;
+  --surface: #ffffff;
+  --panel:   #f5eddd;
+  --panel-2: #ede2cd;
+  --line:    #ded1b6;
+  --line-2:  #c8b48f;
+
+  --t-1: #271f12;
+  --t-2: #5f5540;
+  --t-3: #72654b;
+  --t-4: #766851;
+
+  --accent:      #8f4e00;
+  --accent-ink:  #fffaf0;
+  --accent-soft: rgba(143, 78, 0, .11);
+  --warn:      #c33423;
+  --warn-soft: rgba(195, 52, 35, .09);
+  --ok:        #007737;
+  --ok-soft: rgba(0, 119, 55, .10);
+  --info:      #17708c;
+  --info-soft: rgba(23, 112, 140, .09);
+
+  --cat-a: #9a5c00;  --cat-a-soft: rgba(154, 92, 0,  .12);
+  --cat-b: #4035c8;  --cat-b-soft: rgba(64, 53, 200, .12);
+  --cat-c: #6b3fa3;  --cat-c-soft: rgba(107, 63, 163, .12);
+  --cat-n: #71644d;  --cat-n-soft: rgba(113, 100, 77, .11);
+
+  --shadow: 0 8px 26px rgba(96, 74, 40, .13);
+}
+
+/* ---- 预设 pop：活泼糖果（v1.2，用户反馈"配色老气"而来） ---- */
+:root[data-preset="pop"] {
+  --bg:#191324; --surface:#221b30; --panel:#2b2140; --panel-2:#342850;
+  --line:#473868; --line-2:#604b8a;
+  --t-1:#f7efff; --t-2:#dccdf2; --t-3:#ab99cd; --t-4:#9586be;
+  --accent:#ff5d8f; --accent-ink:#30060f; --accent-soft: rgba(255, 93, 143,.15);
+  --warn:#ff8a5c; --warn-soft: rgba(255, 138, 92,.13);
+  --ok:#3ee2a2; --ok-soft: rgba(62, 226, 162,.12);
+  --info:#4ecbf5; --info-soft: rgba(78, 203, 245,.12);
+  --cat-a:#ff9e64; --cat-a-soft: rgba(255, 158, 100,.15);
+  --cat-b:#538fe4; --cat-b-soft: rgba(83, 143, 228,.15);
+  --cat-c:#cd8ffa; --cat-c-soft: rgba(205, 143, 250,.15);
+  --cat-n:#9e93bb; --cat-n-soft: rgba(158, 147, 187,.14);
+  --shadow:0 10px 34px rgba(18,6,38,.5);
+}
+:root[data-preset="pop"][data-theme="light"] {
+  --bg:#fdf8ff; --surface:#ffffff; --panel:#f7edfe; --panel-2:#f0e2fb;
+  --line:#e5d5f3; --line-2:#cbadf0;
+  --t-1:#291838; --t-2:#614b78; --t-3:#76638e; --t-4:#756689;
+  --accent:#b81b5e; --accent-ink:#fff5fa; --accent-soft: rgba(184, 27, 94,.10);
+  --warn:#bf3606; --warn-soft: rgba(191, 54, 6,.09);
+  --ok:#00774b; --ok-soft: rgba(0, 119, 75,.10);
+  --info:#0173a2; --info-soft: rgba(1, 115, 162,.09);
+  --cat-a:#b04d00; --cat-a-soft: rgba(176, 77, 0,.12);
+  --cat-b:#3540b8; --cat-b-soft: rgba(53, 64, 184,.12);
+  --cat-c:#8438d6; --cat-c-soft: rgba(132, 56, 214,.12);
+  --cat-n:#70638a; --cat-n-soft: rgba(112, 99, 138,.11);
+  --shadow:0 8px 26px rgba(96,44,128,.14);
+}
+
+/* ---- 预设 ink：冷静专业（light 的 cat-b 不得不高饱和：accent 蓝与 cat-c 紫
+   夹逼靛蓝中段，柔靛候选 ΔE76 全部 <20，见 DESIGN.md v1.3.1） ---- */
+:root[data-preset="ink"] {
+  --bg:#0e131a; --surface:#161c26; --panel:#1c2430; --panel-2:#232c3a;
+  --line:#333e4f; --line-2:#4a5768;
+  --t-1:#eff3f8; --t-2:#c9d2de; --t-3:#97a3b4; --t-4:#838e9e;
+  --accent:#5ea8ff; --accent-ink:#08172b; --accent-soft: rgba(94, 168, 255,.13);
+  --warn:#ff7a6e; --warn-soft: rgba(255, 122, 110,.12);
+  --ok:#52d9a0; --ok-soft: rgba(82, 217, 160,.12);
+  --info:#74c7d6; --info-soft: rgba(116, 199, 214,.12);
+  --cat-a:#f0b355; --cat-a-soft: rgba(240, 179, 85,.14);
+  --cat-b:#7c93c0; --cat-b-soft: rgba(124, 147, 192,.14);
+  --cat-c:#9f8cff; --cat-c-soft: rgba(159, 140, 255,.14);
+  --cat-n:#8b98aa; --cat-n-soft: rgba(139, 152, 170,.13);
+  --shadow:0 10px 34px rgba(4,10,20,.5);
+}
+:root[data-preset="ink"][data-theme="light"] {
+  --bg:#f6f9fc; --surface:#ffffff; --panel:#ecf1f7; --panel-2:#e0e9f2;
+  --line:#d3dde8; --line-2:#b4c3d3;
+  --t-1:#17222e; --t-2:#4a5a6b; --t-3:#5c6e82; --t-4:#5d6e7d;
+  --accent:#1a5fc0; --accent-ink:#f4f9ff; --accent-soft: rgba(26, 95, 192,.10);
+  --warn:#c63526; --warn-soft: rgba(198, 53, 38,.09);
+  --ok:#007840; --ok-soft: rgba(0, 120, 64,.10);
+  --info:#0c7498; --info-soft: rgba(12, 116, 152,.09);
+  --cat-a:#8e5e00; --cat-a-soft: rgba(142, 94, 0,.11);
+  --cat-b: #1616df; --cat-b-soft: rgba(22, 22, 223,.11);
+  --cat-c:#5b48c2; --cat-c-soft: rgba(91, 72, 194,.11);
+  --cat-n:#59697c; --cat-n-soft: rgba(89, 105, 124,.11);
+  --shadow:0 8px 26px rgba(30,50,80,.12);
+}
+
+/* ============ 基础 ============ */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--t-1);
+  font: var(--fs-body)/1.75 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ 布局 ============ */
+/* 用逻辑属性让 .container（水平留白）与 .page（垂直节奏）在同一元素上正交组合，
+   谁也不会清零谁的 padding（2026-09-08 漂移案例 #1：简写互相覆盖导致窄屏贴边） */
+.container { max-width: var(--content-w); margin-inline: auto; padding-inline: var(--sp-4); }
+.page { padding-block: var(--sp-6) var(--sp-5); }
+
+.section { margin-top: var(--sp-6); }
+.grid { display: grid; gap: var(--sp-3); }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+
+/* ============ 文本 ============ */
+.display { font-size: var(--fs-display); font-weight: 800; line-height: 1.18; letter-spacing: -.01em; margin: 0; }
+h1 { font-size: var(--fs-h1); font-weight: 750; line-height: 1.25; margin: 0 0 var(--sp-2); }
+h2 { font-size: var(--fs-h2); font-weight: 700; line-height: 1.3;  margin: 0 0 var(--sp-2); }
+h3 { font-size: var(--fs-h3); font-weight: 650; margin: 0 0 var(--sp-1); }
+p  { margin: 0 0 var(--sp-2); }
+.t-2, .muted { color: var(--t-2); }
+.t-3 { color: var(--t-3); }
+.t-4 { color: var(--t-4); }
+.lead { font-size: 1.14rem; color: var(--t-2); }
+
+/* 节眉：编号 + 标题（NN · 标题） */
+.eyebrow {
+  font: 700 var(--fs-label)/1 var(--font-mono);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 var(--sp-2);
+}
+.section > .eyebrow::before { content: attr(data-n) " · "; color: var(--t-4); }
+
+code, .mono { font-family: var(--font-mono); font-size: .92em;
+  background: var(--panel-2); padding: .1em .4em; border-radius: 5px; }
+
+/* ============ 表面 ============ */
+.card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-3) var(--sp-4); }
+.panel { background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-l); padding: var(--sp-4); }
+
+/* 徽章 / 药丸 */
+.badge { display: inline-flex; align-items: center; gap: .4em;
+  font: 650 var(--fs-label)/1.2 var(--font-mono); letter-spacing: .08em;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: .32em .8em; }
+.pill { display: inline-block; font-size: var(--fs-small); color: var(--t-2);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; padding: .18em .75em; }
+
+/* ============ 语义色（文本用） ============ */
+.c-accent { color: var(--accent); } .c-warn { color: var(--warn); }
+.c-ok     { color: var(--ok); }     .c-info { color: var(--info); }
+.c-cat-a  { color: var(--cat-a); }  .c-cat-b { color: var(--cat-b); }
+.c-cat-c  { color: var(--cat-c); }  .c-cat-n { color: var(--cat-n); }
+
+/* ============ 组件：调用框 / 类比框 / 警示条 ============ */
+.callout { border-left: 3px solid var(--info); background: var(--info-soft);
+  border-radius: 0 var(--r-m) var(--r-m) 0; padding: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; }
+.callout-accent { border-left-color: var(--accent); background: var(--accent-soft); }
+.callout-warn   { border-left-color: var(--warn);   background: var(--warn-soft); }
+.callout-ok     { border-left-color: var(--ok);     background: var(--ok-soft); }
+
+/* 类比框：直觉层专用。"类比失效点"必须有 */
+.analogy { border: 1px dashed var(--line-2); border-radius: var(--r-m);
+  padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; }
+.analogy-limit { margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: 1px dashed var(--line-2); color: var(--t-3); font-size: var(--fs-small); }
+.analogy-limit::before { content: "类比到此为止 —— "; color: var(--warn); font-weight: 650; }
+
+/* ============ 组件：对比卡（容易混淆层） ============ */
+.compare { display: grid; gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.compare-card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-3); }
+.compare-card .out { margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: 1px solid var(--line); font-size: var(--fs-small); color: var(--t-2); }
+.compare-card .out::before { content: "输出："; color: var(--t-4); }
+.compare-highlight { border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.compare-highlight > h3 { color: var(--accent); }
+
+/* ============ 组件：管线（首屏概念链） ============ */
+/* 窄屏自动纵排、箭头转向 —— 避免换行后"孤儿箭头"（2026-09-08 漂移案例 #2） */
+.pipe { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: stretch; margin: var(--sp-4) 0; }
+.pipe .p { flex: 1 1 8rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center; }
+.pipe .p b { display: block; font-size: 1.06rem; }
+.pipe .p span { font-size: var(--fs-small); color: var(--t-3); }
+.pipe .arrow { align-self: center; color: var(--t-4); font-size: 1.4rem; }
+@media (max-width: 34rem) {
+  .pipe { flex-direction: column; }
+  .pipe .arrow { transform: rotate(90deg); }
+}
+
+/* ============ 组件：流程图（横向步进） ============ */
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); }
+.flow-step { flex: 1 1 8.5rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center; }
+.flow-step .n { font: 700 var(--fs-label)/1 var(--font-mono); color: var(--t-4); }
+.flow-arrow { align-self: center; color: var(--t-4); font-size: 1.3rem; }
+
+/* ============ 组件：失败模式（一字标签） ============ */
+.fails { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+.fail { background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--warn); border-radius: var(--r-s);
+  padding: var(--sp-2) var(--sp-3); }
+.fail .tag { display: inline-block; font-weight: 800; color: var(--warn); margin-right: .4em; }
+
+/* ============ 组件：记（收尾） ============ */
+.takeaway { background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: var(--r-l); padding: var(--sp-4); margin-top: var(--sp-6);
+  font-size: 1.17rem; }
+.takeaway::before { content: "记"; display: inline-block; font-weight: 800;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: var(--r-s); padding: .05em .55em; margin-right: .6em; }
+.takeaway mark { background: var(--accent-soft); color: var(--accent);
+  padding: .04em .25em; border-radius: 4px; font-weight: 700; white-space: nowrap; }
+
+/* ============ 组件：步骤模拟器 ============ */
+.sim { background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: var(--r-l); padding: var(--sp-4); margin: var(--sp-4) 0; }
+.sim-stage { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: stretch; }
+.sim-node { flex: 1 1 9rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center;
+  color: var(--t-3); transition: border-color .25s, background .25s, color .25s; }
+.sim-node .k { font: 700 var(--fs-label)/1.4 var(--font-mono); letter-spacing: .1em;
+  text-transform: uppercase; display: block; }
+.sim-node.is-waiting  { border-style: dashed; } /* v1.3：等待态不再整节点半透明（light 下对比度近失明），虚线边框示等待 */
+.sim-node.is-active   { border-color: var(--accent); background: var(--accent-soft);
+  color: var(--t-1); box-shadow: 0 0 0 1px var(--accent); }
+.sim-node.is-done     { border-color: var(--ok); color: var(--t-2); }
+.sim-node.is-done .k  { color: var(--ok); }
+.sim-narration { min-height: 3.2em; margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-3);
+  background: var(--surface); border-radius: var(--r-m); border: 1px solid var(--line);
+  color: var(--t-2); }
+.sim-controls { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.sim-controls button { font: 650 var(--fs-small)/1 var(--font-sans); cursor: pointer;
+  background: var(--surface); color: var(--t-1); border: 1px solid var(--line-2);
+  border-radius: 999px; padding: .55em 1.2em; transition: border-color .2s; }
+.sim-controls button:hover { border-color: var(--accent); }
+.sim-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sim-progress { font: 600 var(--fs-label)/1 var(--font-mono); color: var(--t-4);
+  margin-left: auto; align-self: center; letter-spacing: .1em; }
+
+/* ============ 组件：工具条（每页标配：主题/风格/分享） ============ */
+.toolbar { position: fixed; top: var(--sp-3); right: var(--sp-3);
+  display: flex; gap: var(--sp-1); z-index: 20; }
+.toolbar button { font: 650 var(--fs-label)/1 var(--font-mono); letter-spacing: .06em;
+  color: var(--t-2); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 999px; padding: .55em 1em; cursor: pointer;
+  transition: border-color .2s, color .2s; }
+.toolbar button:hover { color: var(--t-1); border-color: var(--accent); }
+.toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.share-pop { position: fixed; top: calc(var(--sp-3) + 2.6rem); right: var(--sp-3); z-index: 20;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-m);
+  padding: var(--sp-2) var(--sp-3); max-width: min(22rem, calc(100vw - 2rem));
+  font-size: var(--fs-small); color: var(--t-2); box-shadow: var(--shadow); }
+.share-pop a { color: var(--accent); word-break: break-all; }
+.share-pop .hint { color: var(--t-3); }
+.share-pop code { word-break: break-all; }
+
+/* 窄屏模拟器两列（v1.3.1：提特异性 .sim-stage .sim-node —— 此前放在 .pipe 媒体查询里
+   是死代码，评审连续两轮抓到"声称修复未生效"；此后此类修复必须带浏览器断言回执） */
+@media (max-width: 34rem) {
+  .sim-stage .sim-node { flex: 1 1 calc(50% - var(--sp-2)); }
+}
+
+/* ============ 动效（全局降级契约） ============ */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============ 本页专用布局（颜色全部 var()） ============ */
+.hero-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap}
+.pipe .p.q{border-color:var(--cat-b)}
+.pipe .p.lib{border-color:var(--cat-a)}
+.pipe .p.ans{border-color:var(--ok)}
+.ba{display:grid;gap:var(--sp-3);grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}
+.ba .before{border:1px dashed var(--line-2)}
+.ba .arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:1.5rem}
+.ctx-anatomy{display:grid;gap:var(--sp-2)}
+.ctx-anatomy .slot{border:1px solid var(--line);border-radius:var(--r-s);padding:var(--sp-2) var(--sp-3);background:var(--surface)}
+.ctx-anatomy .slot b{font-family:var(--font-mono);font-size:var(--fs-small);letter-spacing:.06em}
+.lock{display:flex;gap:var(--sp-2);align-items:center;margin-top:var(--sp-2);color:var(--t-2)}
+.lock .ic{font-size:1.2rem}
+</style>
+<script>
+/* 主题 bootstrap：越早执行越不闪（FOUC 防护） */
+(() => { try {
+  const r = document.documentElement;
+  r.dataset.theme = localStorage.getItem("aha-theme") ||
+    (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const p = localStorage.getItem("aha-preset"); if (p) r.dataset.preset = p;
+} catch (e) {} })();
+</script></head>
+<body>
+<div class="toolbar">
+  <button type="button" data-tb-theme aria-label="切换深浅色">◐</button>
+  <button type="button" data-tb-preset aria-label="切换配色风格">◈ 暖</button>
+  <button type="button" data-tb-share aria-haspopup="true" aria-expanded="false">分享</button>
+</div>
+<div class="share-pop" data-share-pop hidden><div data-share-body></div></div>
+
+<div class="container page">
+
+  <!-- ===== 第 1 层：一句话核心 ===== -->
+  <header class="section" style="margin-top:0">
+    <p class="eyebrow">aha · 概念图解</p>
+    <div class="hero-head">
+      <h1 class="display">RAG<span class="t-4" style="font-weight:400"> / 检索增强生成</span></h1>
+      <span class="badge">起点 L1 · 零基础</span>
+    </div>
+    <p class="lead"><strong>先从外部资料里找到相关内容，再让模型带着这些内容回答。</strong></p>
+
+    <div class="pipe" role="img" aria-label="一次 RAG 回答的路径：问题先经过资料库检索，再带着资料进入模型，最后生成有依据的回答">
+      <div class="p q"><b>你的问题</b><span>"每天餐费报多少？"</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="p lib"><b>资料库检索</b><span>翻到相关那几页</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="p"><b>模型</b><span>带着资料作答</span></div>
+      <span class="arrow" aria-hidden="true">→</span>
+      <div class="p ans"><b>有依据的回答</b><span>附出处，可核对</span></div>
+    </div>
+  </header>
+
+  <!-- ===== 第 2 层：为什么存在 ===== -->
+  <section class="section">
+    <p class="eyebrow" data-n="01">为什么需要它</p>
+    <h2>模型会说话，但不一定掌握你此刻需要的资料</h2>
+    <div class="ba">
+      <div class="card before">
+        <h3 class="t-3">只问模型 = 闭卷考试</h3>
+        <p class="t-2">它的知识<strong>冻结在训练结束那天</strong>；
+          你们公司的报销制度、今天刚发布的公告、内部文档 —— 它统统没读过。</p>
+        <p class="t-3">没读过的内容，它要么说不知道，要么编一个像样的答案。</p>
+      </div>
+      <div class="arrow" aria-hidden="true">➜</div>
+      <div class="card">
+        <h3 class="c-ok">加上 RAG = 先翻资料再回答</h3>
+        <p class="t-2">回答之前，先把<strong>你的资料</strong>里相关的部分找出来，
+          原文放到模型眼前，让它"照着材料说话"。</p>
+        <p class="t-2">资料是今天的、私有的、带出处的。</p>
+      </div>
+    </div>
+    <div class="callout">
+      <p><strong>大白话：</strong>模型不是"不聪明"，是<strong>没带书</strong>。
+      RAG 就是把书递到它手上的那一步。</p>
+    </div>
+  </section>
+
+  <!-- ===== 第 3 层：直觉（类比 + 失效边界） ===== -->
+  <section class="section">
+    <p class="eyebrow" data-n="02">先建立一个直觉</p>
+    <h2>像一场开卷考试</h2>
+    <div class="analogy">
+      <p><strong>把 RAG 想象成开卷考试。</strong>闭卷时你只能靠脑中记忆（模型的训练知识）；
+      开卷时你先翻到相关那页（<strong>检索</strong>），把要点抄到试卷旁边（<strong>拼装进输入</strong>），
+      再作答（<strong>生成</strong>）。卷面上的每个论点，都能指回资料上的某一页。</p>
+      <p class="analogy-limit">开卷考试里，资料是"复印到这道题旁边"，不是"背进你的脑子" ——
+      RAG 同样<strong>不改变模型本身</strong>，下一道题（下一次提问）要重新翻一次。
+      类比也不覆盖"答题水平"：资料再全，组织答案的能力仍取决于模型。</p>
+    </div>
+  </section>
+
+  <!-- ===== 第 4 层：真实机制 ===== -->
+  <section class="section">
+    <p class="eyebrow" data-n="03">真实机制</p>
+    <h2>两阶段：先备料，再答题</h2>
+
+    <h3 class="t-2">阶段一 · 备料（提前做一次）</h3>
+    <div class="flow">
+      <div class="flow-step"><span class="n">01</span><br>收集资料</div>
+      <span class="flow-arrow" aria-hidden="true">→</span>
+      <div class="flow-step"><span class="n">02</span><br>切成小块<br><span class="t-3">chunk</span></div>
+      <span class="flow-arrow" aria-hidden="true">→</span>
+      <div class="flow-step"><span class="n">03</span><br>变成向量<br><span class="t-3">embedding</span></div>
+      <span class="flow-arrow" aria-hidden="true">→</span>
+      <div class="flow-step"><span class="n">04</span><br>建好索引<br><span class="t-3">可搜索</span></div>
+    </div>
+    <div class="callout">
+      <p><strong>大白话：</strong>这一步像给资料做<strong>目录和位置卡</strong>
+      —— 每小块资料算出一个"内容指纹"（向量），相近的指纹代表相近的意思。
+      这不是把资料训练进模型，资料和模型是分开存放的。</p>
+    </div>
+
+    <h3 class="t-2" style="margin-top:var(--sp-4)">阶段二 · 答题（每次提问）</h3>
+    <p class="t-3">进入视野后会自动播放一次；也可逐步查看每一步发生了什么。</p>
+
+    <div class="sim" data-sim>
+      <div class="sim-stage">
+        <div class="sim-node" data-node="q"><span class="k">提问</span><span data-node-text>待命</span></div>
+        <div class="sim-node" data-node="retrieve"><span class="k">Retrieve</span><span data-node-text>待命</span></div>
+        <div class="sim-node" data-node="augment"><span class="k">Augment</span><span data-node-text>待命</span></div>
+        <div class="sim-node" data-node="generate"><span class="k">Generate</span><span data-node-text>待命</span></div>
+      </div>
+      <p class="sim-narration" data-sim-narration aria-live="polite"></p>
+      <div class="sim-controls">
+        <button type="button" data-sim-reset>重置</button>
+        <button type="button" data-sim-prev>上一步</button>
+        <button type="button" data-sim-next>下一步</button>
+        <button type="button" data-sim-play>播放</button>
+        <span class="sim-progress" data-sim-progress>– / –</span>
+      </div>
+    </div>
+
+    <h3 class="t-2" style="margin-top:var(--sp-4)">模型看到的，究竟是什么</h3>
+    <div class="panel">
+      <p class="t-3" style="margin-bottom:var(--sp-2)">一次请求的完整输入（上下文窗口）：</p>
+      <div class="ctx-anatomy">
+        <div class="slot"><b class="c-cat-b">任务要求</b><span class="t-2">"仅根据下列资料回答；资料没有就明说。"</span></div>
+        <div class="slot"><b class="c-cat-b">用户问题</b><span class="t-2">"差旅餐费每天最多报多少？"</span></div>
+        <div class="slot"><b class="c-cat-a">检索到的资料</b><span class="t-2">《报销制度》2.3 节：餐费上限 100 元/天……</span></div>
+      </div>
+      <p class="lock"><svg class="ic" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" style="vertical-align:-2px"><path d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1zm2 0h6V7a3 3 0 0 0-6 0v3z" fill="var(--t-2)"/></svg>
+        模型的参数（权重）<strong>没有因此更新</strong> —— 回答结束，这些资料即被丢弃。</p>
+    </div>
+    <div class="callout">
+      <p><strong>补充（真实系统）：</strong>检索不一定只靠向量相似度，
+      常同时混用关键词搜索、权限过滤和<strong>重排</strong>（reranking，把最相关的排到前面）。</p>
+    </div>
+  </section>
+
+  <!-- ===== 第 5 层：容易混淆 ===== -->
+  <section class="section">
+    <p class="eyebrow" data-n="04">容易混淆的</p>
+    <h2>搜索、RAG、微调 —— 改变的不是同一件事</h2>
+    <div class="compare">
+      <div class="compare-card">
+        <h3 class="c-cat-b">搜索</h3>
+        <p class="t-2">改的是<strong>你找资料的方式</strong>：给关键词，还你一堆链接。
+        读完、综合、写成答案的是你自己。</p>
+        <p class="out">资料列表</p>
+      </div>
+      <div class="compare-card compare-highlight">
+        <h3>RAG（本页主角）</h3>
+        <p class="t-2">改的是<strong>这一次交给模型的内容</strong>：检索 → 拼装 → 生成一条链，
+        模型替你读资料并作答，资料随时可换新。</p>
+        <p class="out">带资料上下文的回答</p>
+      </div>
+      <div class="compare-card">
+        <h3 class="c-cat-c">微调</h3>
+        <p class="t-2">改的是<strong>模型本身</strong>：用数据继续训练，改变它的行为与风格。
+        代价高、更新慢，也不是为"记住最新资料"设计的。</p>
+        <p class="out">改变后的模型</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 第 6 层：边界与失败模式 ===== -->
+  <section class="section">
+    <p class="eyebrow" data-n="05">边界与失败模式</p>
+    <h2>它提高"有依据"的机会，不保证答案正确</h2>
+    <div class="fails">
+      <div class="fail"><span class="tag">坏料</span>资料本身过时或写错，答案跟着错。</div>
+      <div class="fail"><span class="tag">错页</span>检索不准，拿无关资料回答，答非所问。</div>
+      <div class="fail"><span class="tag">答偏</span>资料在手，模型仍可能忽略或曲解它。</div>
+      <div class="fail"><span class="tag">难核</span>不给出处时，你无法区分"引用"与"编造"。</div>
+    </div>
+    <div class="callout callout-warn">
+      <p><strong>常见误区：</strong>"上了 RAG 就不会瞎编了" —— 不对。
+      RAG 是一条链路：<strong>前面任何一步出错，后面的回答都可能跟着错</strong>。
+      高风险的事实（金额、日期、条款）仍应查看原始出处；
+      精确数据通常应直接查数据库，而不是让模型转述。</p>
+    </div>
+    <div class="callout callout-ok">
+      <p><strong>什么时候它真的有用：</strong>资料是内部的或私有的 ·
+      内容频繁更新 · 回答需要给出处 · 领域术语专有（通用模型没学过）。</p>
+    </div>
+  </section>
+
+  <!-- ===== 第 7 层：记 ===== -->
+  <div class="takeaway">
+    <p><mark>RAG</mark> = 先<mark>检索</mark>相关资料，再把资料和问题一起交给模型生成回答。
+    它改的是这一次的输入，不是模型本身。</p>
+  </div>
+
+</div>
+
+
+<!-- ===== 步骤模拟器（引擎原样来自 assets/simulator.html） ===== -->
+<script>
+const SIM_STEPS = [
+  { say: "有人提问：“公司差旅餐费每天最多报多少？”",
+    nodes: { q: "active", retrieve: "waiting", augment: "waiting", generate: "waiting" },
+    set: { q: "问题到达" } },
+  { say: "问题被算成“内容指纹”（向量），去索引里比对：哪些资料块和它意思最近？",
+    nodes: { q: "done", retrieve: "active", augment: "waiting", generate: "waiting" },
+    set: { retrieve: "比对中…" } },
+  { say: "找到 3 块相关资料：《报销制度》2.3 节、餐费补充说明、最新修订记录。",
+    nodes: { q: "done", retrieve: "done", augment: "waiting", generate: "waiting" },
+    set: { retrieve: "命中 3 块" } },
+  { say: "拼装（augment）：把资料块、问题和任务要求组装成一次完整输入。",
+    nodes: { q: "done", retrieve: "done", augment: "active", generate: "waiting" },
+    set: { augment: "组装输入" } },
+  { say: "生成（generate）：模型带着资料作答 —— “每天 100 元”，出处 2.3 节。",
+    nodes: { q: "done", retrieve: "done", augment: "done", generate: "active" },
+    set: { generate: "作答中…" } },
+  { say: "完成。回答里的数字来自资料而非模型记忆，可以点开出处核对；模型权重未变。",
+    nodes: { q: "done", retrieve: "done", augment: "done", generate: "done" },
+    set: { generate: "完成 ✓" } },
+];
+const SIM_MS_PER_STEP = 2400;
+</script>
+<script>
+/* [SIM-ENGINE] 播放器逻辑 —— 禁止修改（与 assets/simulator.html 相同） */
+(() => {
+  for (const root of document.querySelectorAll("[data-sim]")) {
+    const steps = SIM_STEPS, last = steps.length - 1;
+    const nodes = new Map();
+    for (const el of root.querySelectorAll("[data-node]")) nodes.set(el.dataset.node, el);
+    const narration = root.querySelector("[data-sim-narration]");
+    const progress  = root.querySelector("[data-sim-progress]");
+    const btnReset  = root.querySelector("[data-sim-reset]");
+    const btnPrev   = root.querySelector("[data-sim-prev]");
+    const btnNext   = root.querySelector("[data-sim-next]");
+    const btnPlay   = root.querySelector("[data-sim-play]");
+    let i = -1, timer = null;
+    const idleTexts = new Map(
+      [...nodes.values()].map(el => [el, el.querySelector("[data-node-text]")?.textContent ?? ""])
+    );
+    const render = (idx) => {
+      if (idx < 0) {
+        for (const [id, el] of nodes) {
+          el.className = "sim-node is-waiting";
+          const t = el.querySelector("[data-node-text]");
+          if (t) t.textContent = idleTexts.get(el);
+        }
+        narration.textContent = "进入视野后会自动播放一次；也可以用下方按钮逐步查看。";
+        progress.textContent = "– / " + steps.length;
+        return;
+      }
+      const s = steps[idx];
+      for (const [id, el] of nodes) {
+        el.className = "sim-node is-" + (s.nodes[id] ?? "waiting");
+        if (s.set && s.set[id] !== undefined) {
+          const t = el.querySelector("[data-node-text]");
+          if (t) t.innerHTML = s.set[id];
+        }
+      }
+      narration.textContent = s.say;
+      progress.textContent = (idx + 1) + " / " + steps.length;
+    };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; btnPlay.textContent = "播放"; } };
+    const go = (idx) => { i = Math.max(-1, Math.min(idx, last)); render(i); };
+    btnNext.addEventListener("click", () => { stop(); go(i + 1); });
+    btnPrev.addEventListener("click", () => { stop(); go(i - 1); });
+    btnReset.addEventListener("click", () => { stop(); go(-1); });
+    btnPlay.addEventListener("click", () => {
+      if (timer) return stop();
+      if (i >= last) go(-1);
+      btnPlay.textContent = "暂停";
+      timer = setInterval(() => { if (i >= last) return stop(); go(i + 1); }, SIM_MS_PER_STEP);
+    });
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", (e) => {
+      if (e.matches) { stop(); go(last); } // 会话中途开启减少动效：停播并直出终态
+    });
+    if (reduced) { go(last); }
+    else {
+      let played = false;
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some(e => e.isIntersecting) && !played) {
+          played = true; io.disconnect(); btnPlay.click();
+        }
+      }, { threshold: 0.45 });
+      io.observe(root);
+    }
+    render(-1);
+  }
+})();
+</script>
+<script>
+/* [TOOLBAR] 页面工具条 —— 主题/风格/分享，原样复制自 reference.html */
+(() => {
+  const root = document.documentElement;
+  const PRESETS = ["warm", "pop", "ink"];
+  const LABEL = { warm: "暖", pop: "跳", ink: "静" };
+  root.dataset.theme = localStorage.getItem("aha-theme") ||
+    (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  let preset = localStorage.getItem("aha-preset") || "warm";
+  root.dataset.preset = preset;
+  const themeBtn = document.querySelector("[data-tb-theme]");
+  const presetBtn = document.querySelector("[data-tb-preset]");
+  const shareBtn = document.querySelector("[data-tb-share]");
+  const paint = () => { presetBtn.textContent = "◈ " + LABEL[preset]; };
+  paint();
+  themeBtn.addEventListener("click", () => {
+    root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+    localStorage.setItem("aha-theme", root.dataset.theme);
+  });
+  presetBtn.addEventListener("click", () => {
+    preset = PRESETS[(PRESETS.indexOf(preset) + 1) % PRESETS.length];
+    root.dataset.preset = preset;
+    localStorage.setItem("aha-preset", preset);
+    paint();
+  });
+  const pop = document.querySelector("[data-share-pop]");
+  const body = pop.querySelector("[data-share-body]");
+  const setPop = (open) => { pop.hidden = !open; shareBtn.setAttribute("aria-expanded", String(open)); };
+  // 经隧道公开访问（*.trycloudflare.com）时隐藏分享 —— 双重分享无意义；
+  // 本地 / 局域网 IP / file:// 均保留（局域网访问分享合法可用）
+  const isLocal = !location.hostname.endsWith(".trycloudflare.com");
+  if (!isLocal) { shareBtn.remove(); pop.remove(); }
+  if (isLocal) shareBtn.addEventListener("click", async () => {
+    setPop(pop.hidden);
+    if (pop.hidden) return;
+    document.addEventListener("keydown", function esc(e) { if (e.key === "Escape") { setPop(false); document.removeEventListener("keydown", esc); } });
+    document.addEventListener("click", function out(e) { if (!pop.contains(e.target) && e.target !== shareBtn) { setPop(false); document.removeEventListener("click", out); } });
+    const token = document.querySelector('meta[name="aha-share-token"]')?.content;
+    if (!token) {
+      body.innerHTML = "直接打开的本地文件开不了公网链接。<br>在终端运行 <code>npx @dimples/aha serve</code> 后从索引页访问本页，或 <code>npx @dimples/aha share</code>。";
+      return;
+    }
+    const H = { "x-aha-token": token };
+    body.textContent = "建立隧道…";
+    await fetch("/api/share", { method: "POST", headers: H });
+    const timer = setInterval(async () => {
+      try {
+        const s = await (await fetch("/api/share", { headers: H })).json();
+        if (s.phase === "running") {
+          clearInterval(timer);
+          body.innerHTML = "";
+          // 直达当前页（而非隧道根/列表页）；隧道复用由服务端状态机保证
+          const full = s.url + location.pathname;
+          const a = document.createElement("a");
+          a.href = a.textContent = full;
+          const cp = document.createElement("button");
+          cp.textContent = "复制";
+          cp.onclick = () => { navigator.clipboard.writeText(full); cp.textContent = "已复制"; };
+          const note = document.createElement("div");
+          note.className = "hint";
+          note.textContent = "临时链接，serve 进程退出即失效";
+          body.append(a, cp, note);
+        } else if (s.phase === "error") {
+          clearInterval(timer);
+          body.textContent = "失败：" + (s.message || "未知错误");
+        } else {
+          body.textContent = s.phase === "installing"
+            ? "安装 cloudflared 中（首次约一分钟）…" : "建立隧道…";
+        }
+      } catch { /* 轮询失败忽略，下轮重试 */ }
+    }, 1000);
+  });
+})();
+</script>
+</body>
+</html>

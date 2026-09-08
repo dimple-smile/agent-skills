@@ -1,0 +1,22 @@
+<!-- ============================================================
+     snippet: flow-diagram —— 流程/结构层
+     ============================================================
+     适用（形式映射：流程/数据流 → 流程图；结构/层级 → 结构图）：
+     · 3-6 步的线性流程（准备 → 执行 → 产出）
+     · 注意：随时间发生且有状态变化的流程 → 用 simulator.html，
+       不要用静态流程图凑数
+     规则：
+     · 每步一个短语标签，禁止整句；细节放旁边文字
+     · 步骤超过 6 步 → 先质疑能否合并
+     · 复杂 SVG 结构图：颜色只能 var(--cat-a/b/c/n)、var(--line) 等
+     ============================================================ -->
+
+<div class="flow">
+  <div class="flow-step"><span class="n">01</span><br>第一步</div>
+  <span class="flow-arrow" aria-hidden="true">→</span>
+  <div class="flow-step"><span class="n">02</span><br>第二步</div>
+  <span class="flow-arrow" aria-hidden="true">→</span>
+  <div class="flow-step"><span class="n">03</span><br>第三步</div>
+  <span class="flow-arrow" aria-hidden="true">→</span>
+  <div class="flow-step"><span class="n">04</span><br>产出</div>
+</div>

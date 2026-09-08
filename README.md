@@ -82,6 +82,43 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
 ```
 
+### aha
+
+把任意复杂概念讲成一份**渐进分层、大图少字、可交互**的独立 HTML 解释页。目标是建立正确的心智模型 —— 不是让人"觉得懂了"，而是"真的懂了"。
+
+**设计来源**（调研了 4 个实现后的合成）：
+- [cloudflare-docs/eli5](https://github.com/cloudflare/cloudflare-docs/tree/production/.agents/skills/aha) — 受众立场（聪明但缺上下文）与禁用词表、类比边界、反模式语料
+- [eli5-plus](https://github.com/qqyumidi/eli5-plus) — 七层教学骨架与动画体面契约
+- [archify](https://github.com/tt-a1i/archify) — "质量来自随包资产与机器质量门，不来自提示词"
+- [vgpu](https://github.com/vercel-labs/vgpu) — 着色器展示层（选配，静态降级）
+
+**核心机制：**
+
+| 机制 | 说明 |
+|------|------|
+| 七层骨架 | 一句话核心 → 为什么 → 直觉（类比+失效边界）→ 真实机制 → 容易混淆 → 边界/失败模式 → 记 |
+| 起点校准 | 按提问用词判 L1/L2/L3 起点，只调起点与类比选择，永不删层 |
+| 随包资产 | design-tokens.css（明暗双主题）+ 范例页 + 步骤模拟器脚手架 + 片段库 |
+| 11 道质量门 | `aha check`：单 h1 / 标题层级 / head 元数据 / img alt / tokens 内联且与 canonical 一致 / 无颜色字面量 / 类词表 / 脚本语法 / 无提问者指代 / 失败标签一致 / 中文页模拟器标签中文化 |
+| 诚实回执 | 没做过浏览器视觉验证，不得声称视觉验证通过 |
+
+**典型工作流：**
+
+1. **提问** - 「/aha Transformer 注意力机制」
+2. **校准** - Agent 按提问信号判定起点（如 L2：用过"梯度下降"）
+3. **生成** - 写 `~/.aha/transformer-attention.html`（token + 片段 + 模拟器），页面自带主题/风格/分享工具条
+4. **验证** - `npx @dimples/aha check <file>` 跑 11 门，回执如实报告
+5. **启动** - `npx @dimples/aha start` 后台守护（幂等），交付页链接 + 书架入口两行回执
+6. **分享** - `npx @dimples/aha serve`（本地 7332，主页即 `~/.aha` 历史列表）/ `share`（cloudflared 临时公网链接，免账号）
+
+**安装：**
+```bash
+npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+```
+
+> **CLI**：发布到 npm 后用 `npx @dimples/aha check|serve|share`（零运行时依赖）；
+> 发布前可直接跑仓库内等价命令：`node skills/aha/cli/src/cli.mjs <command>`
+
 ## 安装
 
 **安装全部技能：**
@@ -96,6 +133,7 @@ npx skills add dimple-smile/agent-skills
 # 中文版
 npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
+npx skills add https://github.com/dimple-smile/agent-skills --skill aha
 
 # English
 npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en

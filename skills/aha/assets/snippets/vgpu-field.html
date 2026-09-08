@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     snippet: vgpu-field —— 着色器展示层（可选，永不承载核心解释）
+     ============================================================
+     适用（两个条件必须同时满足，缺一不可）：
+     · 概念本质是连续场 / 波 / 流 / 梯度 / 海量粒子
+       （例：波干涉、梯度下降的损失面、注意力权重场、流场）
+     · 用户明确要求"更炫 / showcase / 可交互演示"
+     硬规则：
+     · 页面的核心解释绝不依赖本层 —— 它挂了页面照样完整成立
+     · 静态降级图必须自己讲明白同一个点（reduced-motion / 无 WebGPU /
+       CDN 不可达 / 库加载失败，四种情况都落回它）
+     · 颜色纪律贯通到 GPU：着色器 tint 从 CSS token 读取后传 uniform，
+       不在 WGSL 里硬编码品牌色
+     · 依赖：WebGPU（Chrome/Edge 113+，Safari 26+，Firefox 141+ 桌面）；
+       库从 esm.sh 懒加载 vgpu（MIT）。均不可用时静默降级，控制台零报错
+     · 生成时若要改 WGSL：用 `npx vgpu check` 校验语法；
+       effect()/uniform 约定以 vgpu 当前版本文档为准（npx vgpu docs）
+     ============================================================ -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aha · vgpu 场展示片段</title>
+<style>
+/* ============================================================
+   aha-design-tokens v1.3.1 — 唯一合法的颜色/字号/圆角来源
+   ============================================================
+   规则（SKILL.md 契约）：
+   1. 页面必须原样内联本文件的 <style> 块（保留 aha-design-tokens 标记）。
+   2. 颜色只能通过 var(--token) 或本文件定义的语义类名使用。
+   3. tokens 块之外禁止出现 hex / rgb() / hsl() —— `aha check` 会扫描。
+   4. 页面自定义 CSS（布局、SVG 图形）允许，但取色必须 var()。
+   双轴换肤（archify theme × preset 模式）：
+   · data-theme = dark | light（明暗对等：每个颜色成对派生）
+   · data-preset = warm（默认·暖编辑部）| pop（活泼·糖果）| ink（冷静·专业）
+   只翻 <html> 属性换肤，组件代码零改动；预设只覆写颜色，不改字号与间距。
+   色距规则（v1.3.1）：cat-b 与 ok/info/accent/cat-c 四邻均须常视力 ΔE>20；
+   cat-a 勿与 accent/warn 相邻出现。ΔE>20 指常视力 —— 色觉缺陷下靠文字标签
+   冗余承载语义（对比卡标题始终有文字，不是仅靠颜色区分）。
+   ============================================================ */
+
+:root, :root[data-theme="dark"] {
+  /* 表面 */
+  --bg:      #161210;
+  --surface: #1f1915;
+  --panel:   #27201a;
+  --panel-2: #2f2620;
+  --line:    #423629;
+  --line-2:  #5c4b39;
+
+  /* 文本（4 级） */
+  --t-1: #f7f1e7;
+  --t-2: #d9cdba;
+  --t-3: #a99b82;
+  --t-4: #9b8f7c;
+
+  /* 语义色 */
+  --accent:      #ffab2e;  /* 金橙 —— 强调 / 当前行 */
+  --accent-ink:  #241a09;  /* accent 上的文字 */
+  --accent-soft: rgba(255, 171, 46, .14);
+  --warn:      #ff8577;    /* 珊瑚 —— 边界 / 警示 */
+  --warn-soft: rgba(255, 133, 119, .12);
+  --ok:        #6fe3a5;    /* 确认 / 成功路径 */
+  --ok-soft: rgba(111, 227, 165, .12);
+  --info:      #7fd4ea;    /* 中性信息 */
+  --info-soft: rgba(127, 212, 234, .12);
+
+  /* 概念类别色（对比卡 / 结构图分区，最多 3 类 + 中性） */
+  --cat-a: #f6a931;  --cat-a-soft: rgba(246, 169, 49,  .15);
+  --cat-b: #2897e2;  --cat-b-soft: rgba(40, 151, 226,  .15);
+  --cat-c: #c39bef;  --cat-c-soft: rgba(195, 155, 239, .15);
+  --cat-n: #b3a48c;  --cat-n-soft: rgba(179, 164, 140, .14); /* 中性 */
+
+  /* 字阶 */
+  --fs-display: clamp(2.2rem, 6vw, 3.4rem);
+  --fs-h1:      clamp(1.7rem, 4.5vw, 2.3rem);
+  --fs-h2:      clamp(1.3rem, 3.5vw, 1.6rem);
+  --fs-h3:      1.12rem;
+  --fs-body:    1.02rem;
+  --fs-small:   .88rem;
+  --fs-label:   .75rem;
+
+  /* 空间 / 圆角 / 其他 */
+  --sp-1: .35rem;  --sp-2: .7rem;  --sp-3: 1.1rem;
+  --sp-4: 1.7rem;  --sp-5: 2.6rem; --sp-6: 4rem;
+  --r-s: 8px;  --r-m: 14px;  --r-l: 22px;
+  --content-w: 46rem;
+  --shadow: 0 10px 34px rgba(0, 0, 0, .34);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+               "PingFang SC", monospace;
+}
+
+:root[data-theme="light"] {
+  --bg:      #fbf6ec;
+  --surface: #ffffff;
+  --panel:   #f5eddd;
+  --panel-2: #ede2cd;
+  --line:    #ded1b6;
+  --line-2:  #c8b48f;
+
+  --t-1: #271f12;
+  --t-2: #5f5540;
+  --t-3: #72654b;
+  --t-4: #766851;
+
+  --accent:      #8f4e00;
+  --accent-ink:  #fffaf0;
+  --accent-soft: rgba(143, 78, 0, .11);
+  --warn:      #c33423;
+  --warn-soft: rgba(195, 52, 35, .09);
+  --ok:        #007737;
+  --ok-soft: rgba(0, 119, 55, .10);
+  --info:      #17708c;
+  --info-soft: rgba(23, 112, 140, .09);
+
+  --cat-a: #9a5c00;  --cat-a-soft: rgba(154, 92, 0,  .12);
+  --cat-b: #4035c8;  --cat-b-soft: rgba(64, 53, 200, .12);
+  --cat-c: #6b3fa3;  --cat-c-soft: rgba(107, 63, 163, .12);
+  --cat-n: #71644d;  --cat-n-soft: rgba(113, 100, 77, .11);
+
+  --shadow: 0 8px 26px rgba(96, 74, 40, .13);
+}
+
+/* ---- 预设 pop：活泼糖果（v1.2，用户反馈"配色老气"而来） ---- */
+:root[data-preset="pop"] {
+  --bg:#191324; --surface:#221b30; --panel:#2b2140; --panel-2:#342850;
+  --line:#473868; --line-2:#604b8a;
+  --t-1:#f7efff; --t-2:#dccdf2; --t-3:#ab99cd; --t-4:#9586be;
+  --accent:#ff5d8f; --accent-ink:#30060f; --accent-soft: rgba(255, 93, 143,.15);
+  --warn:#ff8a5c; --warn-soft: rgba(255, 138, 92,.13);
+  --ok:#3ee2a2; --ok-soft: rgba(62, 226, 162,.12);
+  --info:#4ecbf5; --info-soft: rgba(78, 203, 245,.12);
+  --cat-a:#ff9e64; --cat-a-soft: rgba(255, 158, 100,.15);
+  --cat-b:#538fe4; --cat-b-soft: rgba(83, 143, 228,.15);
+  --cat-c:#cd8ffa; --cat-c-soft: rgba(205, 143, 250,.15);
+  --cat-n:#9e93bb; --cat-n-soft: rgba(158, 147, 187,.14);
+  --shadow:0 10px 34px rgba(18,6,38,.5);
+}
+:root[data-preset="pop"][data-theme="light"] {
+  --bg:#fdf8ff; --surface:#ffffff; --panel:#f7edfe; --panel-2:#f0e2fb;
+  --line:#e5d5f3; --line-2:#cbadf0;
+  --t-1:#291838; --t-2:#614b78; --t-3:#76638e; --t-4:#756689;
+  --accent:#b81b5e; --accent-ink:#fff5fa; --accent-soft: rgba(184, 27, 94,.10);
+  --warn:#bf3606; --warn-soft: rgba(191, 54, 6,.09);
+  --ok:#00774b; --ok-soft: rgba(0, 119, 75,.10);
+  --info:#0173a2; --info-soft: rgba(1, 115, 162,.09);
+  --cat-a:#b04d00; --cat-a-soft: rgba(176, 77, 0,.12);
+  --cat-b:#3540b8; --cat-b-soft: rgba(53, 64, 184,.12);
+  --cat-c:#8438d6; --cat-c-soft: rgba(132, 56, 214,.12);
+  --cat-n:#70638a; --cat-n-soft: rgba(112, 99, 138,.11);
+  --shadow:0 8px 26px rgba(96,44,128,.14);
+}
+
+/* ---- 预设 ink：冷静专业（light 的 cat-b 不得不高饱和：accent 蓝与 cat-c 紫
+   夹逼靛蓝中段，柔靛候选 ΔE76 全部 <20，见 DESIGN.md v1.3.1） ---- */
+:root[data-preset="ink"] {
+  --bg:#0e131a; --surface:#161c26; --panel:#1c2430; --panel-2:#232c3a;
+  --line:#333e4f; --line-2:#4a5768;
+  --t-1:#eff3f8; --t-2:#c9d2de; --t-3:#97a3b4; --t-4:#838e9e;
+  --accent:#5ea8ff; --accent-ink:#08172b; --accent-soft: rgba(94, 168, 255,.13);
+  --warn:#ff7a6e; --warn-soft: rgba(255, 122, 110,.12);
+  --ok:#52d9a0; --ok-soft: rgba(82, 217, 160,.12);
+  --info:#74c7d6; --info-soft: rgba(116, 199, 214,.12);
+  --cat-a:#f0b355; --cat-a-soft: rgba(240, 179, 85,.14);
+  --cat-b:#7c93c0; --cat-b-soft: rgba(124, 147, 192,.14);
+  --cat-c:#9f8cff; --cat-c-soft: rgba(159, 140, 255,.14);
+  --cat-n:#8b98aa; --cat-n-soft: rgba(139, 152, 170,.13);
+  --shadow:0 10px 34px rgba(4,10,20,.5);
+}
+:root[data-preset="ink"][data-theme="light"] {
+  --bg:#f6f9fc; --surface:#ffffff; --panel:#ecf1f7; --panel-2:#e0e9f2;
+  --line:#d3dde8; --line-2:#b4c3d3;
+  --t-1:#17222e; --t-2:#4a5a6b; --t-3:#5c6e82; --t-4:#5d6e7d;
+  --accent:#1a5fc0; --accent-ink:#f4f9ff; --accent-soft: rgba(26, 95, 192,.10);
+  --warn:#c63526; --warn-soft: rgba(198, 53, 38,.09);
+  --ok:#007840; --ok-soft: rgba(0, 120, 64,.10);
+  --info:#0c7498; --info-soft: rgba(12, 116, 152,.09);
+  --cat-a:#8e5e00; --cat-a-soft: rgba(142, 94, 0,.11);
+  --cat-b: #1616df; --cat-b-soft: rgba(22, 22, 223,.11);
+  --cat-c:#5b48c2; --cat-c-soft: rgba(91, 72, 194,.11);
+  --cat-n:#59697c; --cat-n-soft: rgba(89, 105, 124,.11);
+  --shadow:0 8px 26px rgba(30,50,80,.12);
+}
+
+/* ============ 基础 ============ */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--t-1);
+  font: var(--fs-body)/1.75 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ 布局 ============ */
+/* 用逻辑属性让 .container（水平留白）与 .page（垂直节奏）在同一元素上正交组合，
+   谁也不会清零谁的 padding（2026-09-08 漂移案例 #1：简写互相覆盖导致窄屏贴边） */
+.container { max-width: var(--content-w); margin-inline: auto; padding-inline: var(--sp-4); }
+.page { padding-block: var(--sp-6) var(--sp-5); }
+
+.section { margin-top: var(--sp-6); }
+.grid { display: grid; gap: var(--sp-3); }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+
+/* ============ 文本 ============ */
+.display { font-size: var(--fs-display); font-weight: 800; line-height: 1.18; letter-spacing: -.01em; margin: 0; }
+h1 { font-size: var(--fs-h1); font-weight: 750; line-height: 1.25; margin: 0 0 var(--sp-2); }
+h2 { font-size: var(--fs-h2); font-weight: 700; line-height: 1.3;  margin: 0 0 var(--sp-2); }
+h3 { font-size: var(--fs-h3); font-weight: 650; margin: 0 0 var(--sp-1); }
+p  { margin: 0 0 var(--sp-2); }
+.t-2, .muted { color: var(--t-2); }
+.t-3 { color: var(--t-3); }
+.t-4 { color: var(--t-4); }
+.lead { font-size: 1.14rem; color: var(--t-2); }
+
+/* 节眉：编号 + 标题（NN · 标题） */
+.eyebrow {
+  font: 700 var(--fs-label)/1 var(--font-mono);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 var(--sp-2);
+}
+.section > .eyebrow::before { content: attr(data-n) " · "; color: var(--t-4); }
+
+code, .mono { font-family: var(--font-mono); font-size: .92em;
+  background: var(--panel-2); padding: .1em .4em; border-radius: 5px; }
+
+/* ============ 表面 ============ */
+.card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-3) var(--sp-4); }
+.panel { background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--r-l); padding: var(--sp-4); }
+
+/* 徽章 / 药丸 */
+.badge { display: inline-flex; align-items: center; gap: .4em;
+  font: 650 var(--fs-label)/1.2 var(--font-mono); letter-spacing: .08em;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--line-2); border-radius: 999px; padding: .32em .8em; }
+.pill { display: inline-block; font-size: var(--fs-small); color: var(--t-2);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; padding: .18em .75em; }
+
+/* ============ 语义色（文本用） ============ */
+.c-accent { color: var(--accent); } .c-warn { color: var(--warn); }
+.c-ok     { color: var(--ok); }     .c-info { color: var(--info); }
+.c-cat-a  { color: var(--cat-a); }  .c-cat-b { color: var(--cat-b); }
+.c-cat-c  { color: var(--cat-c); }  .c-cat-n { color: var(--cat-n); }
+
+/* ============ 组件：调用框 / 类比框 / 警示条 ============ */
+.callout { border-left: 3px solid var(--info); background: var(--info-soft);
+  border-radius: 0 var(--r-m) var(--r-m) 0; padding: var(--sp-2) var(--sp-3); margin: var(--sp-3) 0; }
+.callout-accent { border-left-color: var(--accent); background: var(--accent-soft); }
+.callout-warn   { border-left-color: var(--warn);   background: var(--warn-soft); }
+.callout-ok     { border-left-color: var(--ok);     background: var(--ok-soft); }
+
+/* 类比框：直觉层专用。"类比失效点"必须有 */
+.analogy { border: 1px dashed var(--line-2); border-radius: var(--r-m);
+  padding: var(--sp-3) var(--sp-4); margin: var(--sp-3) 0; }
+.analogy-limit { margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: 1px dashed var(--line-2); color: var(--t-3); font-size: var(--fs-small); }
+.analogy-limit::before { content: "类比到此为止 —— "; color: var(--warn); font-weight: 650; }
+
+/* ============ 组件：对比卡（容易混淆层） ============ */
+.compare { display: grid; gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.compare-card { background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-3); }
+.compare-card .out { margin-top: var(--sp-2); padding-top: var(--sp-2);
+  border-top: 1px solid var(--line); font-size: var(--fs-small); color: var(--t-2); }
+.compare-card .out::before { content: "输出："; color: var(--t-4); }
+.compare-highlight { border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.compare-highlight > h3 { color: var(--accent); }
+
+/* ============ 组件：管线（首屏概念链） ============ */
+/* 窄屏自动纵排、箭头转向 —— 避免换行后"孤儿箭头"（2026-09-08 漂移案例 #2） */
+.pipe { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: stretch; margin: var(--sp-4) 0; }
+.pipe .p { flex: 1 1 8rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center; }
+.pipe .p b { display: block; font-size: 1.06rem; }
+.pipe .p span { font-size: var(--fs-small); color: var(--t-3); }
+.pipe .arrow { align-self: center; color: var(--t-4); font-size: 1.4rem; }
+@media (max-width: 34rem) {
+  .pipe { flex-direction: column; }
+  .pipe .arrow { transform: rotate(90deg); }
+}
+
+/* ============ 组件：流程图（横向步进） ============ */
+.flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--sp-2); }
+.flow-step { flex: 1 1 8.5rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center; }
+.flow-step .n { font: 700 var(--fs-label)/1 var(--font-mono); color: var(--t-4); }
+.flow-arrow { align-self: center; color: var(--t-4); font-size: 1.3rem; }
+
+/* ============ 组件：失败模式（一字标签） ============ */
+.fails { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
+.fail { background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--warn); border-radius: var(--r-s);
+  padding: var(--sp-2) var(--sp-3); }
+.fail .tag { display: inline-block; font-weight: 800; color: var(--warn); margin-right: .4em; }
+
+/* ============ 组件：记（收尾） ============ */
+.takeaway { background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: var(--r-l); padding: var(--sp-4); margin-top: var(--sp-6);
+  font-size: 1.17rem; }
+.takeaway::before { content: "记"; display: inline-block; font-weight: 800;
+  background: var(--accent); color: var(--accent-ink);
+  border-radius: var(--r-s); padding: .05em .55em; margin-right: .6em; }
+.takeaway mark { background: var(--accent-soft); color: var(--accent);
+  padding: .04em .25em; border-radius: 4px; font-weight: 700; white-space: nowrap; }
+
+/* ============ 组件：步骤模拟器 ============ */
+.sim { background: var(--panel); border: 1px solid var(--line-2);
+  border-radius: var(--r-l); padding: var(--sp-4); margin: var(--sp-4) 0; }
+.sim-stage { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: stretch; }
+.sim-node { flex: 1 1 9rem; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-m); padding: var(--sp-2) var(--sp-3); text-align: center;
+  color: var(--t-3); transition: border-color .25s, background .25s, color .25s; }
+.sim-node .k { font: 700 var(--fs-label)/1.4 var(--font-mono); letter-spacing: .1em;
+  text-transform: uppercase; display: block; }
+.sim-node.is-waiting  { border-style: dashed; } /* v1.3：等待态不再整节点半透明（light 下对比度近失明），虚线边框示等待 */
+.sim-node.is-active   { border-color: var(--accent); background: var(--accent-soft);
+  color: var(--t-1); box-shadow: 0 0 0 1px var(--accent); }
+.sim-node.is-done     { border-color: var(--ok); color: var(--t-2); }
+.sim-node.is-done .k  { color: var(--ok); }
+.sim-narration { min-height: 3.2em; margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-3);
+  background: var(--surface); border-radius: var(--r-m); border: 1px solid var(--line);
+  color: var(--t-2); }
+.sim-controls { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.sim-controls button { font: 650 var(--fs-small)/1 var(--font-sans); cursor: pointer;
+  background: var(--surface); color: var(--t-1); border: 1px solid var(--line-2);
+  border-radius: 999px; padding: .55em 1.2em; transition: border-color .2s; }
+.sim-controls button:hover { border-color: var(--accent); }
+.sim-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sim-progress { font: 600 var(--fs-label)/1 var(--font-mono); color: var(--t-4);
+  margin-left: auto; align-self: center; letter-spacing: .1em; }
+
+/* ============ 组件：工具条（每页标配：主题/风格/分享） ============ */
+.toolbar { position: fixed; top: var(--sp-3); right: var(--sp-3);
+  display: flex; gap: var(--sp-1); z-index: 20; }
+.toolbar button { font: 650 var(--fs-label)/1 var(--font-mono); letter-spacing: .06em;
+  color: var(--t-2); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 999px; padding: .55em 1em; cursor: pointer;
+  transition: border-color .2s, color .2s; }
+.toolbar button:hover { color: var(--t-1); border-color: var(--accent); }
+.toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.share-pop { position: fixed; top: calc(var(--sp-3) + 2.6rem); right: var(--sp-3); z-index: 20;
+  background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r-m);
+  padding: var(--sp-2) var(--sp-3); max-width: min(22rem, calc(100vw - 2rem));
+  font-size: var(--fs-small); color: var(--t-2); box-shadow: var(--shadow); }
+.share-pop a { color: var(--accent); word-break: break-all; }
+.share-pop .hint { color: var(--t-3); }
+.share-pop code { word-break: break-all; }
+
+/* 窄屏模拟器两列（v1.3.1：提特异性 .sim-stage .sim-node —— 此前放在 .pipe 媒体查询里
+   是死代码，评审连续两轮抓到"声称修复未生效"；此后此类修复必须带浏览器断言回执） */
+@media (max-width: 34rem) {
+  .sim-stage .sim-node { flex: 1 1 calc(50% - var(--sp-2)); }
+}
+
+/* ============ 动效（全局降级契约） ============ */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+</style>
+<script>
+/* 主题 bootstrap：越早执行越不闪（FOUC 防护） */
+(() => { try {
+  const r = document.documentElement;
+  r.dataset.theme = localStorage.getItem("aha-theme") ||
+    (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const p = localStorage.getItem("aha-preset"); if (p) r.dataset.preset = p;
+} catch (e) {} })();
+</script></head>
+<body>
+<div class="container">
+  <h1>vgpu 场展示片段</h1>
+  <p class="t-2" style="color:var(--t-2)">支持 WebGPU 时下方是实时着色器场；否则是你看到的静态版本 —— 两者讲同一个点。</p>
+
+  <!-- ============ [VGPU-MARKUP] 复制区 ============ -->
+  <figure class="field" data-vgpu-field data-shader="wave">
+    <!-- canvas：WebGPU 可用时显示 -->
+    <canvas data-vgpu-canvas hidden></canvas>
+    <!-- 静态降级：必须自己承载解释（这里是"两列波叠加"的示意，用 CSS/SVG 自绘） -->
+    <div class="fallback" data-vgpu-fallback>
+      <svg viewBox="0 0 640 360" role="img" aria-label="两列波叠加：各自的波峰波谷相遇，形成干涉图样">
+        <rect width="640" height="360" fill="var(--surface)"/>
+        <path d="M20 180 Q60 60 100 180 T180 180 T260 180 T340 180 T420 180 T500 180 T580 180 T620 180"
+              fill="none" stroke="var(--cat-a)" stroke-width="3" opacity=".8"/>
+        <path d="M20 180 Q60 300 100 180 T180 180 T260 180 T340 180 T420 180 T500 180 T580 180 T620 180"
+              fill="none" stroke="var(--cat-b)" stroke-width="3" opacity=".8" transform="translate(40 0)"/>
+        <path d="M20 180 Q100 130 180 180 T340 180 T500 180 T620 180"
+              fill="none" stroke="var(--cat-c)" stroke-width="4" stroke-dasharray="1 7" stroke-linecap="round" transform="translate(0 0) scale(1 1)"/>
+        <text x="320" y="330" text-anchor="middle" fill="var(--t-3)" font-size="15">两列相位相反的波相遇 → 相互抵消（静态示意）</text>
+      </svg>
+    </div>
+    <span class="gpu-tag" data-vgpu-tag></span>
+    <figcaption>实时波场：亮处是两列波叠加增强的位置，暗处是相互抵消的位置。
+      （展示层 —— 本页的解释不依赖这段动画）</figcaption>
+  </figure>
+  <!-- ============ /VGPU-MARKUP ============ -->
+</div>
+
+<script>
+/* ============ [VGPU-ENGINE] 通常原样复制；改的只有 WGSL 与参数 ============ */
+(() => {
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for (const root of document.querySelectorAll("[data-vgpu-field]")) {
+    const canvas  = root.querySelector("[data-vgpu-canvas]");
+    const tag     = root.querySelector("[data-vgpu-tag]");
+    if (!navigator.gpu || reduced || !canvas) {
+      tag.textContent = reduced ? "静态（减少动效）" : "静态降级";
+      continue; // 静态降级，零报错
+    }
+    // 从 design tokens 读色 → 传 uniform（颜色纪律贯通到 GPU 层）
+    const cs = getComputedStyle(root);
+    const rgb = (name) => cs.getPropertyValue(name).trim()
+      .match(/\d+(\.\d+)?/g)?.slice(0,3).map(Number) ?? [255,180,84];
+    const tint  = rgb("--accent"), tint2 = rgb("--cat-b");
+    import("https://esm.sh/vgpu").then(async (v) => {
+      const gpu = await v.init();
+      const el  = root.querySelector("[data-vgpu-canvas]");
+      const s   = v.surface(gpu, el, { dpr: [1, 2] });
+      const effect = await v.effect(gpu, WGSL_SHADERS[root.dataset.shader], {
+        set: { tint: [...tint], tint2: [...tint2], speed: 1.2 }
+      });
+      const t = v.clock(gpu);
+      v.frameLoop(gpu, (frame) => {
+        effect.set({ time: t.time });
+        frame.pass(s, effect);
+      });
+      el.hidden = false;
+      root.querySelector("[data-vgpu-fallback]").hidden = true;
+      tag.textContent = "WebGPU · 实时";
+    }).catch(() => { tag.textContent = "静态降级"; }); // 离线/CDN 失败 → 静态
+  }
+})();
+
+/* ============ WGSL —— 唯一值得经常改的区域 ============
+ * 约定：uniform 组 { time f32, speed f32, tint vec3f, tint2 vec3f }。
+ * 入口与绑定布局遵循 vgpu effect() 约定（v0.4：fragment 入口 fs +
+ * @group(0) @binding(0) uniform；若版本有变以 npx vgpu docs 为准）。
+ * 生成时用 `npx vgpu check` 校验。
+ * ==================================================== */
+const WGSL_SHADERS = {
+  // 波场：两列正弦波叠加，亮 = 相长，暗 = 相消
+  wave: `
+struct U { time: f32, speed: f32, tint: vec3f, tint2: vec3f };
+@group(0) @binding(0) var<uniform> u: U;
+@fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let p = (uv - 0.5) * vec2f(8.0, 4.5);
+  let t = u.time * u.speed;
+  let w1 = sin(p.x * 1.5 + t) * cos(p.y * 1.5);
+  let w2 = sin(p.x * 1.5 - t + 2.0) * cos(p.y * 1.5 + 1.0);
+  let v  = (w1 + w2) * 0.5;                       // 叠加
+  let c  = select(u.tint2, u.tint, v > 0.0);
+  let a  = 0.15 + abs(v) * 0.85;                   // |v| 越大越亮
+  return vec4f(c * a, 1.0);
+}`,
+  // 梯度场：同心"等高线"，可视化损失面 / 势场的骨架
+  contour: `
+struct U { time: f32, speed: f32, tint: vec3f, tint2: vec3f };
+@group(0) @binding(0) var<uniform> u: U;
+@fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+  let p  = (uv - 0.5) * 6.0;
+  let d  = length(p + vec2f(sin(u.time * u.speed) * .6, cos(u.time * u.speed) * .4));
+  let b  = fract(d * 3.0 - u.time * u.speed * .3);
+  let ln = smoothStep(0.92, 1.0, b);              // 等高线亮环
+  let c  = mix(u.tint2 * 0.25, u.tint, ln);
+  return vec4f(c, 1.0);
+}`
+};
+</script>
+</body>
+</html>
