@@ -140,6 +140,19 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
 .entry.hero .etitle{font-size:clamp(1.55rem,4.5vw,2.05rem);font-weight:750;white-space:normal;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .entry.hero .dek{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:.92rem}
+/* —— 搜索 —— */
+.searchbar{display:flex;align-items:baseline;gap:.8rem;padding:.7rem .4rem;border-bottom:1px solid var(--line)}
+.searchbar input{flex:1;background:none;border:none;outline:none;color:var(--t1);
+  font:400 1rem/1.4 inherit;padding:0;min-width:0;border-bottom:1px solid transparent;transition:border-color .18s}
+.searchbar input::placeholder{color:var(--t4)}
+.searchbar input:focus{color:var(--t1);border-bottom-color:var(--accent)}
+.searchbar .hint{font:500 .68rem/1 ui-monospace,Menlo,monospace;color:var(--t4);white-space:nowrap;
+  border:1px solid var(--line);border-radius:4px;padding:.2em .45em;cursor:pointer;user-select:none}
+.searchbar .hint:hover{color:var(--t3);border-color:var(--line-2)}
+.searchbar .cnt{font:500 .72rem/1 ui-monospace,Menlo,monospace;color:var(--t4);white-space:nowrap;font-variant-numeric:tabular-nums}
+.searchbar .cnt.hit{color:var(--accent)}
+.nosearch{display:none;padding:2.2rem .4rem;border-bottom:1px solid var(--line);color:var(--t3);font-size:.92rem}
+.nosearch b{color:var(--t1)}
 /* 空书架 */
 .empty{padding:3.2rem .4rem;border-bottom:1px solid var(--line);color:var(--t3)}
 .empty b{display:block;color:var(--t1);font-size:1.3rem;margin-bottom:.4rem}
@@ -166,9 +179,67 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
     </div>
   </header>
   <div class="rule"></div>
+  ${count > 3 ? `<div class="searchbar">
+    <input type="search" data-search placeholder="搜索概念…" autocomplete="off" spellcheck="false" aria-label="搜索概念">
+    <span class="hint" data-search-hint title="按 / 聚焦搜索">/</span>
+    <span class="cnt" data-search-count>${count} 篇</span>
+  </div>
+  <div class="nosearch" data-nosearch hidden>没有匹配 <b></b> 的概念。换个词试试 —— 搜标题、摘要或级别（L1/L2/L3）。</div>` : ""}
   ${count ? rows : `<div class="empty"><b>书架还是空的</b>对一个概念说“aha 某某”，第一页图解会出现在这里。</div>`}
   <p class="foot">aha serve · 页面即链接 · npx @dimples/aha share 可直接开公网</p>
 </div>
+<script>
+/* [SHELF-SEARCH] 概念搜索 —— 原样复制（canonical 在 serve.mjs indexHtml） */
+(() => {
+  const inp = document.querySelector("[data-search]");
+  const hint = document.querySelector("[data-search-hint]");
+  const cnt = document.querySelector("[data-search-count]");
+  const empty = document.querySelector("[data-nosearch]");
+  const entries = [...document.querySelectorAll(".entry")];
+  if (!inp || entries.length === 0) return;
+  const total = entries.length;
+
+  const filter = () => {
+    const q = inp.value.trim().toLowerCase();
+    let vis = 0;
+    for (const e of entries) {
+      const hit = !q || e.textContent.toLowerCase().includes(q);
+      e.style.display = hit ? "" : "none";
+      if (hit) vis++;
+    }
+    // 重编号可见条目（01 起连续）
+    let n = 0;
+    for (const e of entries) {
+      if (e.style.display === "none") continue;
+      n++;
+      e.querySelector(".num").textContent = String(n).padStart(2, "0");
+      // hero 位跟随第一个可见条目
+      e.classList.toggle("hero", n === 1 && total > 1 && !!q === false ? e.classList.contains("hero") : n === 1);
+    }
+    // 计数
+    cnt.textContent = q ? vis + " / " + total + " 篇" : total + " 篇";
+    cnt.classList.toggle("hit", vis < total && !!q);
+    // 空结果
+    if (empty) {
+      empty.hidden = vis > 0;
+      empty.querySelector("b").textContent = q;
+    }
+  };
+
+  inp.addEventListener("input", filter);
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { inp.value = ""; filter(); inp.blur(); }
+  });
+  // "/" 快捷键聚焦
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== inp) {
+      e.preventDefault();
+      inp.focus();
+    }
+  });
+  if (hint) hint.addEventListener("click", () => inp.focus());
+})();
+</script>
 <script>
 (() => {
   const TOKEN = ${JSON.stringify(token)};
