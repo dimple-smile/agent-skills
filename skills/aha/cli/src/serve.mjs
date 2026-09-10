@@ -473,13 +473,23 @@ export function startServer(opts = {}) {
           if (target.toLowerCase().endsWith(".html")) {
             // 注入本会话分享 token：页面内工具条的分享按钮据此调用 /api/share。
             // file:// 直开不含此 meta，分享按钮会转而显示 CLI 指引。
-            res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+            // HTML 一律 no-cache：新构建(引用新 hash 的 JS/CSS)立刻可见,
+            // 否则旧缓存的 HTML 会去请求已被新构建删除的旧资源 → 白屏
+            res.writeHead(200, {
+              "content-type": "text/html; charset=utf-8",
+              "cache-control": "no-cache",
+            });
             res.end(injectToken(await readFile(target, "utf8")));
             return;
           }
           const body = await readFile(target);
+          // vite 等构建器的内容寻址资源(带 hash,不可变)可长期缓存;其余协商缓存
+          const immutable = target.includes(`${sep}assets${sep}`);
           res.writeHead(200, {
             "content-type": MIME[extname(target).toLowerCase()] ?? "application/octet-stream",
+            "cache-control": immutable
+              ? "public, max-age=31536000, immutable"
+              : "no-cache",
           });
           res.end(body);
           return;
@@ -487,12 +497,18 @@ export function startServer(opts = {}) {
         if (st?.isDirectory() || url.pathname === "/") {
           const idx = join(target, "index.html");
           if (existsSync(idx) && target !== dir) {
-            res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+            res.writeHead(200, {
+              "content-type": "text/html; charset=utf-8",
+              "cache-control": "no-cache",
+            });
             res.end(injectToken(await readFile(idx, "utf8"))); // 子目录 index 同样注入（评审 M5）
             return;
           }
           const pages = await listPages(dir);
-          res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+          res.writeHead(200, {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "no-cache",
+          });
           res.end(indexHtml(pages, dir, shareToken));
           return;
         }

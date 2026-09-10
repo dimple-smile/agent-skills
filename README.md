@@ -41,7 +41,7 @@ AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用�
 
 **安装：**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
+npx skills add dimple-smile/agent-skills -s dev-log -y
 ```
 
 > dev-log 的 CLI 也已发布到 npm，可独立使用：`npx @dev-log/cli start`
@@ -79,7 +79,7 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
 
 **安装：**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
+npx skills add dimple-smile/agent-skills -s llm-wiki -y
 ```
 
 ### aha
@@ -113,7 +113,7 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
 
 **安装：**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+npx skills add dimple-smile/agent-skills -s aha -y
 ```
 
 > **CLI**：发布到 npm 后用 `npx @dimples/aha check|serve|share`（零运行时依赖）；
@@ -124,19 +124,19 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill aha
 **安装全部技能：**
 
 ```bash
-npx skills add dimple-smile/agent-skills
+npx skills add dimple-smile/agent-skills -s '*' -y
 ```
 
 **按语言安装单个技能：**
 
 ```bash
 # 中文版
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
-npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+npx skills add dimple-smile/agent-skills -s dev-log -y
+npx skills add dimple-smile/agent-skills -s llm-wiki -y
+npx skills add dimple-smile/agent-skills -s aha -y
 
 # English
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
+npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
 ```
 
 ## 相关链接

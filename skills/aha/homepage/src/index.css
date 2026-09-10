@@ -1,0 +1,248 @@
+@import "tailwindcss";
+
+@theme {
+  /* —— aha 暖黑基因(warm/dark tokens 派生)—— */
+  --color-ink-950: #100d0a;
+  --color-ink-900: #161210;
+  --color-ink-850: #1f1915;
+  --color-ink-800: #27201a;
+  --color-ink-750: #2f2620;
+  --color-line: #423629;
+  --color-line-2: #5c4b39;
+
+  --color-cream-1: #f7f1e7;
+  --color-cream-2: #d9cdba;
+  --color-cream-3: #a99b82;
+  --color-cream-4: #9b8f7c;
+
+  --color-gold: #ffab2e;
+  --color-gold-2: #f6a931;
+  --color-gold-ink: #241a09;
+  --color-ember: #ff8577;
+  --color-mint: #6fe3a5;
+  --color-sky: #7fd4ea;
+  --color-lilac: #c39bef;
+
+  --font-display: "Outfit Variable", -apple-system, BlinkMacSystemFont,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC",
+    sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono",
+    SFMono-Regular, Menlo, Consolas, "PingFang SC", monospace;
+
+  --shadow-glow-gold: 0 0 44px rgba(255, 171, 46, 0.35);
+  --shadow-frame: 0 24px 80px -20px rgba(0, 0, 0, 0.65);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-ink-900);
+  color: var(--color-cream-1);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-gold-ink);
+}
+
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ink-950);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 6px;
+  border: 2px solid var(--color-ink-950);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-line-2);
+}
+
+/* 极淡颗粒质感 */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 概念跑马灯 */
+@keyframes marquee-x {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee-track {
+  animation: marquee-x 42s linear infinite;
+}
+.marquee-track.rev {
+  animation-direction: reverse;
+}
+.quote-swap {
+  animation: quote-in 0.45s ease both;
+}
+@keyframes quote-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* 金流文字 */
+.text-goldflow {
+  background: linear-gradient(
+    100deg,
+    #ffab2e 0%,
+    #ffd08a 35%,
+    #ff8577 70%,
+    #ffab2e 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: goldflow 6s ease-in-out infinite;
+}
+@keyframes goldflow {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+/* 终端光标 */
+@keyframes caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* 名词 ? → ! 弹跳发光 / 求科普抖动 */
+.mark {
+  color: var(--color-cream-4);
+  transform-origin: 50% 60%;
+  transition:
+    color 0.2s,
+    text-shadow 0.2s;
+}
+.mark.on {
+  color: var(--color-gold);
+  text-shadow: 0 0 14px rgba(255, 171, 46, 0.85);
+  animation: mark-pop 0.38s cubic-bezier(0.34, 1.6, 0.64, 1);
+}
+@keyframes mark-pop {
+  0% {
+    transform: scale(0.2, 1.5);
+  }
+  55% {
+    transform: scale(1.35, 0.75);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.mark.callout {
+  color: var(--color-gold);
+  animation: mark-wobble 1.7s ease-in-out;
+}
+@keyframes mark-wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(-14deg) scale(1.2);
+  }
+  40% {
+    transform: rotate(10deg) scale(1.1);
+  }
+  60% {
+    transform: rotate(-8deg) scale(1.2);
+  }
+  80% {
+    transform: rotate(5deg);
+  }
+}
+
+/* ============================================================
+   顿悟舞台 · msg-sphere(WebGPU)整屏渲染 —— ::after 仅作舞台暗角
+   ============================================================ */
+.dome-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at 50% 42%, transparent 55%, rgba(5, 4, 3, 0.5) 100%);
+}
+
+/* logo 的 ? / ! 周期轮换 + hover 打断:全部用动画驱动,衔接帧两端对齐 ——
+   空闲循环的 0% 帧 = hover 结束态;hover 一次性动画的 from 帧 = 空闲态 */
+@keyframes aha-cycle-q {
+  0%   { opacity: 0; transform: rotate(-12deg) scale(0.6); }
+  12%  { opacity: 1; transform: rotate(-12deg) scale(1); }
+  38%  { opacity: 1; transform: rotate(-12deg) scale(1); }
+  50%  { opacity: 0; transform: rotate(-12deg) scale(0.6); }
+  100% { opacity: 0; transform: rotate(-12deg) scale(0.6); }
+}
+@keyframes aha-cycle-e {
+  0%   { opacity: 1; transform: rotate(12deg) scale(1); }
+  38%  { opacity: 1; transform: rotate(12deg) scale(1); }
+  50%  { opacity: 0; transform: rotate(12deg) scale(0.6); }
+  84%  { opacity: 0; transform: rotate(12deg) scale(0.6); }
+  100% { opacity: 1; transform: rotate(12deg) scale(1); }
+}
+@keyframes aha-force-q {
+  from { opacity: 1; transform: rotate(-12deg) scale(1); }
+  to   { opacity: 0; transform: rotate(-12deg) scale(0.6); }
+}
+@keyframes aha-force-e {
+  from { opacity: 0; transform: rotate(12deg) scale(0.6); }
+  to   { opacity: 1; transform: rotate(14deg) scale(1.18); }
+}
+.aha-mark { will-change: opacity, transform; }
+.aha-mark-q { animation: aha-cycle-q 3.6s ease-in-out infinite; }
+.aha-mark-e { animation: aha-cycle-e 3.6s ease-in-out -1.8s infinite; }
+.wordmark:hover .aha-mark-q { animation: aha-force-q 0.26s ease-in forwards; }
+.wordmark:hover .aha-mark-e { animation: aha-force-e 0.38s cubic-bezier(0.34, 1.42, 0.64, 1) forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .aha-mark { animation: none; }
+  .aha-mark-e { opacity: 0; }
+  .wordmark:hover .aha-mark-e { opacity: 1; }
+}
+
+/* 扇形卡组入场:从右侧弧线转进来(只在挂载时播一次) */
+@keyframes aha-card-in {
+  from {
+    opacity: 0;
+    translate: 64px 26px;
+    rotate: 34deg;
+  }
+}
+.aha-card-in {
+  animation: aha-card-in 400ms ease-out both;
+}

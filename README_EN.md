@@ -41,7 +41,7 @@ No screenshots or log copying needed - AI handles debugging autonomously.
 
 **Install:**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
+npx skills add dimple-smile/agent-skills -s dev-log -y
 ```
 
 > The dev-log CLI is also published to npm and works standalone: `npx @dev-log/cli start`
@@ -79,7 +79,7 @@ Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains
 
 **Install:**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
+npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
 ```
 
 ### aha
@@ -100,7 +100,7 @@ Turn any complex concept into a **standalone, visually rich HTML explainer page*
 
 **Install:**
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+npx skills add dimple-smile/agent-skills -s aha -y
 ```
 
 > CLI: `npx @dimples/aha check|serve|share` once published; until then run `node skills/aha/cli/src/cli.mjs <command>` from the repo.
@@ -110,19 +110,19 @@ npx skills add https://github.com/dimple-smile/agent-skills --skill aha
 **Install all skills:**
 
 ```bash
-npx skills add dimple-smile/agent-skills
+npx skills add dimple-smile/agent-skills -s '*' -y
 ```
 
 **Install individual skills by language:**
 
 ```bash
 # Chinese version
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki
-npx skills add https://github.com/dimple-smile/agent-skills --skill aha
+npx skills add dimple-smile/agent-skills -s dev-log -y
+npx skills add dimple-smile/agent-skills -s llm-wiki -y
+npx skills add dimple-smile/agent-skills -s aha -y
 
 # English
-npx skills add https://github.com/dimple-smile/agent-skills --skill llm-wiki-en
+npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
 ```
 
 ## Links
