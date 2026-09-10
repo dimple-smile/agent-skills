@@ -9,11 +9,74 @@ import { spawn, execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { realpathSync, readdirSync } from "node:fs";
-import { extname, join, normalize, resolve, sep } from "node:path";
+import { extname, join, normalize, resolve, sep, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { extractMarkdown } from "./export-md.mjs";
 import { existsSync, mkdirSync, statSync, readFileSync, writeFileSync, unlinkSync, openSync } from "node:fs";
 import { homedir } from "node:os";
 
 export const DEFAULT_PORT = 7332;
+
+function json(res, code, obj) {
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8" }).end(JSON.stringify(obj));
+}
+
+/** CLI 随包资产(导出菜单脚本 + vendor 库) */
+const ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
+const EXPORTS_DIR = join(homedir(), ".aha", "exports");
+const VENDOR_FILES = new Set([
+  "export-menu.js",
+  "vendor/html-to-image.js",
+  "vendor/jspdf.umd.min.js",
+]);
+
+/** ?aha-export=1 时注入:模拟器推到最后一步、展开折叠、藏固定层,然后立就绪标志 */
+const FINALIZE_SCRIPT = `<script>
+(function(){
+  function ready(){ window.__ahaExportReady = true; }
+  var pending = 0, booted = false;
+  function settle(){
+    var t0 = Date.now();
+    (function wait(){
+      if (document.fonts && document.fonts.status !== "loaded" && Date.now() - t0 < 3000) {
+        return document.fonts.ready.then(function(){ setTimeout(ready, 350); });
+      }
+      setTimeout(ready, 350);
+    })();
+  }
+  function doneOne(){ if (--pending <= 0) settle(); }
+  function boot(){
+    if (booted) return; booted = true;
+    document.querySelectorAll(".toolbar,.share-pop").forEach(function(el){ el.remove(); });
+    document.querySelectorAll("details").forEach(function(d){ d.open = true; });
+    // 寓言答案区(按钮式契约):展开并移除按钮,静态导出里不留悬空的「查看答案」
+    document.querySelectorAll("[data-fable-toggle]").forEach(function(btn){
+      if (btn.getAttribute("aria-expanded") === "false") btn.click();
+      btn.style.display = "none";
+    });
+    document.querySelectorAll("[data-fable-answers][hidden]").forEach(function(el){
+      el.removeAttribute("hidden");
+    });
+    var sims = document.querySelectorAll("[data-sim-next]");
+    if (!sims.length) return settle();
+    sims.forEach(function(btn){
+      var box = btn.closest("[data-sim]") || document;
+      var prog = box.querySelector("[data-sim-progress]");
+      var guard = 0;
+      pending++;
+      (function tick(){
+        var m = prog && prog.textContent.match(/(\\d+)\\s*\\/\\s*(\\d+)/);
+        if (m && Number(m[1]) >= Number(m[2])) return doneOne();
+        if (guard++ > 80) return doneOne();
+        btn.click();
+        setTimeout(tick, 24);
+      })();
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+<` + `/script>`;
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -70,7 +133,7 @@ function indexHtml(pages, dir, token) {
     const lvl = esc((p.level.match(/L\\d/) || [""])[0]);
     const date = new Date(p.mtime).toLocaleDateString("zh-CN", { month: "short", day: "numeric" });
     const hero = i === 0 && pages.length > 1;
-    return `<a class="entry${hero ? " hero" : ""}" href="/${encodeURIComponent(p.name)}">
+    return `<a class="entry${hero ? " hero" : ""}" data-aha-file="${esc(p.name)}" href="/${encodeURIComponent(p.name)}">
       <span class="num">${num}</span>
       <span class="mid">
         <span class="etitle">${title}</span>
@@ -147,7 +210,7 @@ body{margin:0;background:var(--bg);color:var(--t1);
 .shareurl button{background:var(--surface);color:var(--t2);border:1px solid var(--line-2);
   border-radius:999px;padding:.3em .8em;margin-left:.6em;font-size:.72rem;cursor:pointer}
 /* —— 目录条目 —— */
-.rule{height:3px;background:var(--accent);margin:2.6rem 0 0;border-radius:2px}
+.rule{height:3px;background:var(--accent);margin:1.5rem 0 0;border-radius:2px}
 .entry{display:grid;grid-template-columns:3.2rem 1fr auto;gap:1.1rem;align-items:baseline;
   padding:1.05rem .4rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;
   transition:background .18s}
@@ -171,7 +234,7 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .entry.hero .dek{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:.92rem}
 /* —— 主题/风格切换（编辑部式：纯文字，与分享链同排） —— */
-.themerow{display:flex;gap:1.2rem;align-items:baseline;margin-top:.5rem}
+.themerow{display:flex;gap:1.2rem;align-items:baseline;margin-top:.5rem;margin-bottom:.7rem}
 .themerow button{background:none;border:none;padding:0;cursor:pointer;
   font:600 .78rem/1 inherit;color:var(--t4);transition:color .18s;letter-spacing:.02em}
 .themerow button:hover,.themerow button:focus-visible{color:var(--accent);outline:none}
@@ -204,7 +267,7 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
   <header class="mast">
     <div>
       <h1 class="wordmark">a<i>h</i>a</h1>
-      <p class="tagline">概念书架 —— 把复杂讲成一张图。<b>已编译 ${count} 篇</b></p>
+      <p class="tagline">概念书架 —— 复杂概念，直观图解。<b>已编译 ${count} 篇</b></p>
       <p class="legend">L1 零基础 · L2 相邻背景 · L3 已入门 —— 起点越高，讲得越深</p>
       <p class="meta">${esc(dir)}</p>
     </div>
@@ -213,8 +276,9 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
         <button type="button" data-tb-theme aria-label="切换深浅色">◐</button>
         <span class="sep">·</span>
         <button type="button" data-tb-preset aria-label="切换配色风格">◈ 暖</button>
+        <span class="sep">·</span>
+        <button type="button" class="sharelink" data-share>分享这面书架 ↗</button>
       </div>
-      <button type="button" class="sharelink" data-share>分享这面书架 ↗</button>
       <span class="sharest" data-share-status></span>
       <div class="shareurl" data-share-url hidden></div>
     </div>
@@ -342,7 +406,7 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
   let poll;
 })();
 </script>
-</body></html>`;
+<script src="/__aha/export-menu.js" defer></script></body></html>`;
 }
 
 /**
@@ -413,6 +477,7 @@ export function startServer(opts = {}) {
               killables,
             });
             current = t;
+            try { writeFileSync(join(dir, ".tunnel.pid"), String(t.pid ?? "")); } catch {}
             shareState = { phase: "running", url: t.url };
           } catch (e) {
             shareState = { phase: "error", message: e.message };
@@ -432,6 +497,60 @@ export function startServer(opts = {}) {
     const server = createServer(async (req, res) => {
       try {
         const url = new URL(req.url ?? "/", "http://localhost");
+        if (
+          url.pathname === "/__aha/export-menu.js" ||
+          url.pathname.startsWith("/__aha/vendor/")
+        ) {
+          const rel = url.pathname.slice("/__aha/".length);
+          if (!VENDOR_FILES.has(rel)) {
+            res.writeHead(404).end("not found");
+            return;
+          }
+          const body = await readFile(join(ASSETS_DIR, rel));
+          res.writeHead(200, {
+            "content-type": "application/javascript; charset=utf-8",
+            "cache-control": "no-cache",
+          });
+          res.end(body);
+          return;
+        }
+        if (url.pathname === "/__aha/export" && req.method === "GET") {
+          const file = normalize(join(dir, url.searchParams.get("file") || ""));
+          if (file !== dir && !file.startsWith(dir + sep)) {
+            res.writeHead(404).end("not found");
+            return;
+          }
+          if (!existsSync(file) || !file.toLowerCase().endsWith(".html")) {
+            json(res, 404, { error: "找不到该页面" });
+            return;
+          }
+          const html = await readFile(file, "utf8");
+          const base = file.split(sep).pop().replace(/\.html$/i, "");
+          mkdirSync(EXPORTS_DIR, { recursive: true });
+          const format = url.searchParams.get("format");
+          if (format === "md") {
+            const md = extractMarkdown(html);
+            const out = join(EXPORTS_DIR, base + ".md");
+            writeFileSync(out, md);
+            res.writeHead(200, {
+              "content-type": "text/markdown; charset=utf-8",
+              "content-disposition": 'attachment; filename="' + base + '.md"',
+            });
+            res.end(md);
+            return;
+          }
+          json(res, 400, { error: "不支持的格式" });
+          return;
+        }
+        if (url.pathname === "/__aha/archive" && req.method === "POST") {
+          const name = (url.searchParams.get("name") || "export.bin").replace(/[^\w.\-]/g, "_");
+          const chunks = [];
+          for await (const c of req) chunks.push(c);
+          mkdirSync(EXPORTS_DIR, { recursive: true });
+          writeFileSync(join(EXPORTS_DIR, name), Buffer.concat(chunks));
+          res.writeHead(200).end("{}");
+          return;
+        }
         if (url.pathname === "/api/share" && api(req, res)) return;
         let pathname;
         try {
@@ -471,15 +590,43 @@ export function startServer(opts = {}) {
         const st = await stat(target).catch(() => null);
         if (st?.isFile()) {
           if (target.toLowerCase().endsWith(".html")) {
+            let html = await readFile(target, "utf8");
+            const exportMode = url.searchParams.has("aha-export");
+            // 本地会话注入导出菜单(公开隧道访客与终态 iframe 不注)
+            if (!exportMode && !req.headers["cf-ray"] && !html.includes("/__aha/export-menu.js")) {
+              html = html.replace("</body>", '<script src="/__aha/export-menu.js" defer></script></body>');
+            }
+            // 终态模式:模拟器推到最后一步再立就绪标志,供父页面捕获
+            if (exportMode && !html.includes("__ahaExportReady")) {
+              html = html.replace("</body>", FINALIZE_SCRIPT + "</body>");
+            }
+            // 导出态主题:按链接参数写入存储与根属性(先于页面自举,所见即所得)
+            if (exportMode) {
+              const tp = url.searchParams.get("theme");
+              const pp = url.searchParams.get("preset");
+              const okId = (x) => /^[a-z][a-z-]{0,20}$/i.test(x ?? "");
+              const t = okId(tp) ? tp : null;
+              const p = okId(pp) ? pp : null;
+              if (t || p) {
+                const sync = `<script>(function(){try{` +
+                  (t ? `localStorage.setItem("aha-theme",${JSON.stringify(t)});` : "") +
+                  (p ? `localStorage.setItem("aha-preset",${JSON.stringify(p)});` : "") +
+                  `}catch(e){}var r=document.documentElement;` +
+                  (t ? `r.dataset.theme=${JSON.stringify(t)};` : "") +
+                  (p ? `r.dataset.preset=${JSON.stringify(p)};` : "") +
+                  `})();<` + `/script>`;
+                html = html.replace(/<head[^>]*>/i, (m) => m + sync);
+              }
+            }
             // 注入本会话分享 token：页面内工具条的分享按钮据此调用 /api/share。
             // file:// 直开不含此 meta，分享按钮会转而显示 CLI 指引。
             // HTML 一律 no-cache：新构建(引用新 hash 的 JS/CSS)立刻可见,
             // 否则旧缓存的 HTML 会去请求已被新构建删除的旧资源 → 白屏
             res.writeHead(200, {
               "content-type": "text/html; charset=utf-8",
-              "cache-control": "no-cache",
+              "cache-control": exportMode ? "no-store" : "no-cache",
             });
-            res.end(injectToken(await readFile(target, "utf8")));
+            res.end(injectToken(html));
             return;
           }
           const body = await readFile(target);
@@ -522,8 +669,10 @@ export function startServer(opts = {}) {
     server.listen(port, "127.0.0.1", () =>
       resolveP({
         port: server.address().port,
-        close: () => {
-          if (current) current.stop(); // 隧道随服务一起关，链接即刻失效
+        close: (opts = {}) => {
+          // 换血模式(preserveTunnel)留下 cloudflared:它独立代理本端口,
+          // 新守护接管后隧道无感续命;正常退出仍随服务关闭(链接即刻失效)
+          if (current && !opts.preserveTunnel) current.stop();
           for (const c of killables) c.kill("SIGTERM"); // 安装子进程一并回收（评审 B6）
           server.close();
         },
@@ -555,13 +704,15 @@ export async function serveCommand(dirArg, opts = {}) {
   console.log("  页面地址：http://127.0.0.1:" + server.port + "/<slug>.html");
   console.log("  Ctrl-C 停止；索引页或页面工具条的分享按钮可开公网链接");
   // Web 流程里由 /api/share 启动的隧道与安装子进程都挂在 server 上；
-  // 进程退出（含 kill）必须一并回收，否则 cloudflared / brew 成为孤儿
-  const cleanup = () => {
-    server.close();
+  // 进程退出（含 kill）必须一并回收，否则 cloudflared / brew 成为孤儿。
+  // 例外:SIGUSR2 是「代码升级换血」——保留隧道进程,新守护接管同一端口。
+  const cleanup = (preserveTunnel = false) => {
+    server.close({ preserveTunnel });
     process.exit(0);
   };
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  process.on("SIGINT", () => cleanup(false));
+  process.on("SIGTERM", () => cleanup(false));
+  process.on("SIGUSR2", () => cleanup(true));
 }
 
 /** listen 阶段错误 → 人话（评审 B4；share.mjs 复用） */
@@ -583,6 +734,7 @@ const probe = async (port, ms = 600) => {
 
 const pidAlive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
 
+
 /**
  * 幂等启动后台 serve 守护（未运行则拉起 detached 子进程，已运行则复用）。
  * pid/日志落在服务目录：.serve.pid / .serve.log
@@ -599,9 +751,15 @@ export async function startDaemon(opts = {}) {
   if (existsSync(pidFile)) {
     const pid = Number(readFileSync(pidFile, "utf8").trim());
     if (pidAlive(pid) && (await probe(port))) {
-      return { pid, port, dir, reused: true, count };
+      // 在跑就换血:SIGUSR2 只关 HTTP、保留隧道进程,等端口释放后拉起新守护
+      try { process.kill(pid, "SIGUSR2"); } catch {}
+      for (let i = 0; i < 40 && (await probe(port, 250)); i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      unlinkSync(pidFile);
+    } else {
+      unlinkSync(pidFile); // 陈旧 pid（进程已死或端口未监听）
     }
-    unlinkSync(pidFile); // 陈旧 pid（进程已死或端口未监听）
   }
   if (await probe(port)) {
     // 端口被外部 serve 占用（如前台手跑的）—— 直接当作守护复用
@@ -658,5 +816,17 @@ export async function stopDaemon(opts = {}) {
       console.error(`aha stop: ${dir}/.serve.pid 不存在，且找不到 lsof —— 端口 ${port} 的服务请手动停止。`);
       process.exit(2);
     }
+  }
+  // 回收「换血升级」留下的孤儿隧道(正常退出已随进程关闭,此处兜底)
+  const tunnelPidFile = join(dir, ".tunnel.pid");
+  if (existsSync(tunnelPidFile)) {
+    const tpid = Number(readFileSync(tunnelPidFile, "utf8").trim());
+    if (tpid && pidAlive(tpid)) {
+      try { process.kill(tpid, "SIGTERM"); } catch {}
+      for (let i = 0; i < 20 && pidAlive(tpid); i++) {
+        await new Promise((r) => setTimeout(r, 150));
+      }
+    }
+    unlinkSync(tunnelPidFile);
   }
 }

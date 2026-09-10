@@ -153,7 +153,7 @@ export function startTunnel(port, bin = "cloudflared", onDown = () => {}) {
       if (url && !settled) {
         settled = true;
         cleanup();
-        resolveP({ url, stop: () => child.kill("SIGTERM") });
+        resolveP({ url, pid: child.pid, stop: () => child.kill("SIGTERM") });
       }
     };
     const cleanup = () => {
