@@ -216,19 +216,14 @@ body {
   84%  { opacity: 0; transform: rotate(12deg) scale(0.6); }
   100% { opacity: 1; transform: rotate(12deg) scale(1); }
 }
-@keyframes aha-force-q {
-  from { opacity: 1; transform: rotate(-12deg) scale(1); }
-  to   { opacity: 0; transform: rotate(-12deg) scale(0.6); }
-}
-@keyframes aha-force-e {
-  from { opacity: 0; transform: rotate(12deg) scale(0.6); }
-  to   { opacity: 1; transform: rotate(14deg) scale(1.18); }
-}
 .aha-mark { will-change: opacity, transform; }
 .aha-mark-q { animation: aha-cycle-q 3.6s ease-in-out infinite; }
 .aha-mark-e { animation: aha-cycle-e 3.6s ease-in-out -1.8s infinite; }
-.wordmark:hover .aha-mark-q { animation: aha-force-q 0.26s ease-in forwards; }
-.wordmark:hover .aha-mark-e { animation: aha-force-e 0.38s cubic-bezier(0.34, 1.42, 0.64, 1) forwards; }
+/* hover:直接切换到「叹号常亮」。不用一次性动画 —— keyframe 的 from 帧
+   与循环当前帧不衔接,会让已是叹号时先闪一下问号 */
+.wordmark:hover .aha-mark-q { animation: none; opacity: 0; }
+.wordmark:hover .aha-mark-e { animation: none; opacity: 1; transform: rotate(14deg) scale(1.18); }
+.aha-mark-q, .aha-mark-e { transition: opacity 0.18s ease; }
 @media (prefers-reduced-motion: reduce) {
   .aha-mark { animation: none; }
   .aha-mark-e { opacity: 0; }

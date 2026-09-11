@@ -15,7 +15,7 @@ export function Wordmark({ className = "", flip = false }: { className?: string;
     <a
       href="#top"
       aria-label="aha — 回到顶部"
-      className={`wordmark group relative flex items-baseline gap-1 ${className}`}
+      className={`wordmark group relative flex items-baseline gap-1 -translate-y-px ${className}`}
     >
       <span className="font-display text-[1.7rem] leading-none font-extrabold tracking-tight">
         a<span className="text-gold">h</span>a
@@ -59,9 +59,21 @@ export function Nav({ onStart }: { onStart: () => void }) {
           : "border-b border-transparent"
       }`}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
-        <Wordmark />
-        <nav className="hidden items-center gap-7 md:flex">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+        <div className="flex items-center gap-3.5">
+          <Wordmark />
+          <a
+            href="https://www.skills.sh/dimple-smile/agent-skills/aha"
+            target="_blank"
+            rel="noreferrer"
+            className="hidden items-center gap-1.5 rounded-full border border-transparent px-3 py-1 font-mono text-[11px] font-semibold text-cream-3 transition-colors hover:border-gold/60 hover:bg-gold/50 hover:text-gold sm:flex"
+          >
+            <img src="/skill-mark.webp" alt="" width={11} height={11} className="rounded-[2px] opacity-80 transition-opacity hover:opacity-100" />
+            skill
+          </a>
+        </div>
+        {/* 绝对居中:不受左右两组宽度差影响 */}
+        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-7 md:flex">
           {LINKS.map((l) => (
             <a
               key={l.href}
@@ -83,15 +95,6 @@ export function Nav({ onStart }: { onStart: () => void }) {
             <span className="flex items-center gap-1">
               <Star size={11} className="text-gold" /> star
             </span>
-          </a>
-          <a
-            href="https://www.skills.sh/dimple-smile/agent-skills/aha"
-            target="_blank"
-            rel="noreferrer"
-            className="hidden items-center gap-1.5 rounded-full border border-gold/60 bg-gold/50 px-3.5 py-1.5 font-mono text-xs font-bold text-gold transition-colors hover:border-gold hover:bg-gold/60 sm:flex"
-          >
-            <img src="/skill-mark.webp" alt="" width={12} height={12} className="rounded-[3px]" />
-            skill
           </a>
           <button
             type="button"
