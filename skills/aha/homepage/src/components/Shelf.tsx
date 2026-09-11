@@ -5,7 +5,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import { LibraryBig, Sparkles, Wand2 } from "lucide-react";
+import { FileDown, LibraryBig, Sparkles, Wand2 } from "lucide-react";
 import { BrowserFrame } from "./BrowserFrame";
 import { Reveal, SectionHead } from "./Reveal";
 
@@ -65,6 +65,13 @@ const CALLOUTS = [
     pos: "-right-1 -bottom-5 lg:-right-8",
     delay: 0.8,
   },
+  {
+    icon: FileDown,
+    title: "一键导出带走",
+    desc: "WebP · PNG · SVG · PDF · Markdown,交互自动定格终态,导出即所见",
+    pos: "-left-2 bottom-6 lg:-left-12",
+    delay: 0.95,
+  },
 ] as const;
 
 export function Shelf() {
@@ -113,7 +120,7 @@ export function Shelf() {
 
         <Reveal delay={0.3}>
           <div className="mt-12 flex flex-wrap items-center justify-center gap-2.5 font-mono text-xs">
-            {["/ 聚焦搜索", "◐ 深浅双主题", "◈ 三套风格", "页面即链接"].map((t) => (
+            {["/ 聚焦搜索", "◐ 深浅双主题", "◈ 三套风格", "⬇ 一键导出", "页面即链接"].map((t) => (
               <span
                 key={t}
                 className="rounded-full border border-line bg-ink-850 px-3 py-1.5 text-cream-3"
