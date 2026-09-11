@@ -52,6 +52,36 @@ const WORDS: Word[] = [
   { w: "编译器" },
   { w: "递归", compactHide: true },
   { w: "采样" },
+  { w: "KV Cache" },
+  { w: "CNN", compactHide: true },
+  { w: "RNN" },
+  { w: "LSTM", compactHide: true },
+  { w: "GAN" },
+  { w: "VAE", compactHide: true },
+  { w: "Dropout" },
+  { w: "Residual", compactHide: true },
+  { w: "位置编码" },
+  { w: "Merkle Tree", compactHide: true },
+  { w: "布隆过滤器" },
+  { w: "Gossip", compactHide: true },
+  { w: "幂等" },
+  { w: "CAP 定理", compactHide: true },
+  { w: "MVCC" },
+  { w: "B+ Tree", compactHide: true },
+  { w: "推测解码" },
+  { w: "联邦学习", compactHide: true },
+  { w: "同态加密" },
+  { w: "过拟合", compactHide: true },
+  { w: "正则化" },
+  { w: "随机森林", compactHide: true },
+  { w: "朴素贝叶斯" },
+  { w: "t-SNE", compactHide: true },
+  { w: "缩放定律" },
+  { w: "上下文学习", compactHide: true },
+  { w: "一致性哈希" },
+  { w: "倒排索引", compactHide: true },
+  { w: "马尔可夫" },
+  { w: "蒙特卡洛", compactHide: true },
 ];
 
 const IDLE_QUOTES = [
@@ -70,32 +100,16 @@ const srand = (i: number) => {
 };
 
 /** 飘落名词:两侧落下,中央让给 slogan */
-interface SatState {
-  xf: number;
-  y: number;
-  vy: number;
-  swayA: number;
-  swayF: number;
-  phase: number;
-  depth: number;
-  side: 0 | 1;
-  ox: number;
-  x: number;
-}
-
-const SATS: SatState[] = WORDS.map((_, i) => ({
-  xf: 0,
-  y: srand(i + 51) * 1200,
-  vy: 0,
-  swayA: 8 + srand(i + 11) * 18,
-  swayF: 0.14 + srand(i + 21) * 0.22,
-  phase: srand(i + 31) * Math.PI * 2,
-  depth: 0.35 + srand(i + 41) * 0.65,
-  side: (srand(i + 61) > 0.5 ? 1 : 0) as 0 | 1,
-  ox: 0,
-  x: 0,
-}));
-
+/** Fibonacci 球面(纬度带,黄金角均匀分布):词像卫星云绕球自转。
+ *  带取赤道及以下半球(y≥-0.05,屏幕向下为正)——球冠与命令行区保持干净。 */
+const FIB_Y_MIN = -0.26;
+const FIB_Y_MAX = 0.62;
+const FIB: { x: number; y: number; z: number }[] = WORDS.map((_, i) => {
+  const y = FIB_Y_MAX - (FIB_Y_MAX - FIB_Y_MIN) * ((i + 0.5) / WORDS.length);
+  const r = Math.sqrt(Math.max(0, 1 - y * y));
+  const th = i * Math.PI * (3 - Math.sqrt(5)); // 黄金角
+  return { x: Math.cos(th) * r, y, z: Math.sin(th) * r };
+});
 
 export function DomeStage({ onWordClick }: { onWordClick?: (word: string) => void }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -182,94 +196,70 @@ export function DomeStage({ onWordClick }: { onWordClick?: (word: string) => voi
     };
   }, []);
 
-  // —— 飘落 rAF:两侧落下(中央排除区) + hover 钉住 + 词间斥力 ——
+  // —— 轨道词 rAF:Fibonacci 球壳绕 Y 慢转;hover 的词原地冻结(角度滞后),
+  //     其余照转、从其身后穿过;松开后滞后指数衰减,平滑归队 ——
   useEffect(() => {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let excl = { l: 0.46 * (size.current.w || 1200), r: 0.54 * (size.current.w || 1200) };
-    const measureExcl = () => {
-      const copy = document.querySelector("#hero-copy");
-      const stage = stageRef.current;
-      const w = size.current.w;
-      if (!copy || !stage || w === 0) return;
-      const sr = stage.getBoundingClientRect();
-      let left = Infinity, right = -Infinity;
-      for (const k of Array.from(copy.children)) {
-        const kr = k.getBoundingClientRect();
-        if (kr.height < 4) continue;
-        left = Math.min(left, kr.left - sr.left);
-        right = Math.max(right, kr.right - sr.left);
-      }
-      excl.l = Math.min(0.80 * w, Math.max(0.15 * w, left - 90));
-      excl.r = Math.max(0.20 * w, Math.min(0.85 * w, right + 90));
-    };
-    setTimeout(measureExcl, 50);
-    const ro = new ResizeObserver(measureExcl);
-    const copyEl = document.querySelector("#hero-copy");
-    if (copyEl) ro.observe(copyEl);
-
     let raf = 0;
-    let t = 0;
     let last = performance.now();
+    let angle = Math.random() * Math.PI * 2; // 起始相位随机,每次进场布局不同
+    const SPEED = 0.13; // rad/s
+    const TILT = 0.12; // 轻微倾轴,呼应相机俯角
+    const cosT = Math.cos(TILT), sinT = Math.sin(TILT);
+    const lag = new Float64Array(FIB.length); // 每词角度滞后(hover 冻结累积)
     const loop = (now: number) => {
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      t += dt;
       const { w, h } = size.current;
       if (w > 0) {
-        for (let a = 0; a < SATS.length; a++) {
-          const A = SATS[a];
-          for (let b = a + 1; b < SATS.length; b++) {
-            const B = SATS[b];
-            const dx = B.x - A.x, dy = B.y - A.y;
-            if (Math.abs(dy) > 42 || Math.abs(dx) > 150) continue;
-            const d = Math.hypot(dx, dy) || 1;
-            if (d < 46) {
-              const push = (46 - d) * 3.4 * dt;
-              A.ox -= (dx / d) * push;
-              B.ox += (dx / d) * push;
-            }
-          }
-        }
-        SATS.forEach((s, i) => {
+        // 球的屏幕标定(与 WGSL 相机一致):中心 59%vh,半径 ~36%vh
+        const cx = w / 2;
+        const cy = 0.59 * h;
+        const ballR = 0.36 * h;
+        const R = Math.min(ballR * 1.55, 0.47 * w);
+        const dAng = reduced ? 0 : SPEED * dt;
+        angle += dAng;
+        const hov = hoverRef.current;
+        FIB.forEach((p, i) => {
           const el = wordEls.current[i];
           if (!el) return;
-          if (s.vy === 0) s.vy = 14 + s.depth * 26;
-          if (s.xf === 0) {
-            s.xf = s.side === 0 ? 0.04 + srand(i + 5) * 0.36 : 0.60 + srand(i + 9) * 0.34;
+          if (hov === i) lag[i] += dAng; // 冻结:把转过的量记为滞后
+          else if (lag[i] !== 0) {
+            lag[i] *= Math.exp(-2.5 * dt); // 松开:指数归队
+            if (Math.abs(lag[i]) < 0.001) lag[i] = 0;
           }
-          const hov = hoverRef.current;
-          if (hov !== i && !reduced) {
-            s.y += s.vy * dt;
-            if (s.y > h + 40) {
-              s.y = -30 - Math.random() * 120;
-              s.side = Math.random() > 0.5 ? 1 : 0;
-              s.xf = s.side === 0
-                ? 0.03 + Math.random() * (excl.l / w - 0.07)
-                : excl.r / w + Math.random() * (0.97 - excl.r / w);
+          const a = angle - lag[i];
+          const cosA = Math.cos(a), sinA = Math.sin(a);
+          // 绕 Y 自转 → 绕 X 倾轴
+          const x1 = p.x * cosA + p.z * sinA;
+          const z1 = -p.x * sinA + p.z * cosA;
+          const y2 = p.y * cosT - z1 * sinT;
+          const z2 = p.y * sinT + z1 * cosT;
+          // 轻透视(焦距 = 3 壳半径)
+          const persp = 3 / (3 - z2);
+          const sx = cx + x1 * R * persp;
+          const sy = cy + y2 * R * persp;
+          const depth = (z2 + 1) / 2; // 0 后 1 前
+          const sc = (0.78 + 0.36 * depth) * (hov === i ? 1.16 : 1);
+          let o = 0.3 + 0.62 * depth;
+          // 后方词穿过球体剪影 → 遮挡淡出(画布不透明,用轮廓判定模拟)
+          if (z2 < 0) {
+            const distBall = Math.hypot(sx - cx, sy - cy);
+            if (distBall < ballR) {
+              const edge = Math.min(1, (ballR - distBall) / 26);
+              o *= 1 - edge * 0.96;
             }
-            s.ox *= Math.max(0, 1 - 5 * dt);
-            s.x = s.xf * w + Math.sin(t * s.swayF * Math.PI * 2 + s.phase) * s.swayA + s.ox;
-            if (s.side === 0) s.x = Math.min(s.x, excl.l);
-            else s.x = Math.max(s.x, excl.r);
-            s.x = Math.max(20, Math.min(w - 20, s.x));
           }
-          const scale = reduced ? 1 : 0.86 + s.depth * 0.3;
-          const op = 0.45 + s.depth * 0.55;
-          const rot = reduced ? 0 : Math.sin(t * s.swayF * Math.PI * 2 + s.phase) * 2.2;
-          const sc = hov === i ? scale * 1.18 : scale;
-          const o = hov === i ? 1 : op;
           el.style.transform =
-            `translate3d(${s.x}px, ${s.y}px, 0) translate(-50%, -50%) rotate(${rot}deg) scale(${sc})`;
-          el.style.opacity = o.toFixed(3);
+            `translate3d(${sx}px, ${sy}px, 0) translate(-50%, -50%) scale(${sc.toFixed(3)})`;
+          el.style.opacity = (hov === i ? 1 : o).toFixed(3);
+          el.style.zIndex = hov === i ? "9" : z2 > 0.02 ? "7" : "5";
         });
       }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => {
-      cancelAnimationFrame(raf);
-      ro.disconnect();
-    };
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   // —— idle 台词轮播 ——
@@ -350,17 +340,17 @@ export function DomeStage({ onWordClick }: { onWordClick?: (word: string) => voi
             ref={(el) => {
               wordEls.current[i] = el;
             }}
-            className={`absolute top-0 left-0 will-change-transform ${
-              SATS[i].depth > 0.72 ? "z-[7]" : "z-[5]"
-            } ${word.compactHide ? "hidden md:block" : ""}`}
+            className={`absolute top-0 left-0 z-[5] will-change-transform ${
+              word.compactHide ? "hidden md:block" : ""
+            }`}
           >
             <button
               onMouseEnter={() => enter(i)}
               onMouseLeave={leave}
               onTouchStart={() => touch(i)}
               onClick={() => click(word)}
-              className={`group relative flex items-baseline gap-0.5 rounded-lg px-2 py-0.5 font-mono text-[11.5px] transition-all md:text-[12.5px] hover:bg-ink-950/50 [text-shadow:0_1px_3px_rgba(5,4,3,0.95),0_0_10px_rgba(5,4,3,0.85)] ${
-                active ? "text-cream-1" : "text-cream-4 hover:text-cream-2"
+              className={`group relative flex items-baseline gap-0.5 rounded-lg px-2 py-0.5 font-mono text-[11.5px] transition-all md:text-[12.5px] [text-shadow:0_1px_3px_rgba(5,4,3,0.95),0_0_10px_rgba(5,4,3,0.85)] ${
+                active ? "bg-ink-950/80 text-cream-1" : "text-cream-4 hover:text-cream-2"
               }`}
             >
               <span>{word.w}</span>
