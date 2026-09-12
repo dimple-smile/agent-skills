@@ -357,7 +357,10 @@ struct VSOut { @builtin(position) position: vec4f, @location(0) uv: vec2f, @loca
           // 词画在球体之上 → 词动 = 整帧(球体+词)一起重画:
           // 只重画词会把新四边形叠进旧帧留下残影。静止时两者一起冻结(零提交)。
           const needFrame = active || wordActive;
-          if (needFrame) {
+          // 尺寸塌缩(窗口拖到极小):0 尺寸 canvas 上 getCurrentTexture 会抛。
+          // 跳过本帧提交,尺寸恢复后 RO → needsResize 自动重画
+          const collapsed = canvas.clientWidth === 0 || canvas.clientHeight === 0;
+          if (needFrame && !collapsed) {
             frame(context, (fr) => {
               sphere.set({
                 params: {
@@ -375,37 +378,44 @@ struct VSOut { @builtin(position) position: vec4f, @location(0) uv: vec2f, @loca
             });
             needsResize = false; // 成功提交后才清除,中途抛错下一帧重试
 
-            // 词轨道覆盖:球体 pass 之后追加(loadOp=load 叠加,同一帧纹理)
+            // 词轨道覆盖:球体 pass 之后追加(loadOp=load 叠加,同一帧纹理)。
+            // 词层是装饰 —— 它的任何异常只下线词层(wordPipeline 置空),
+            // 不允许拖死球体本身(快速缩放视窗的越界一旦漏网,代价只是词消失一帧)
             const wo = options.wordOverlay;
             if (wo && wordPipeline) {
-              const inst = wo.getInstanceData();
-              if (inst && inst.count > 0) {
-                const device = context.gpu;
-                syncWordResources?.(inst.count);
-                if (
-                  canvas.width !== uniW || canvas.height !== uniH ||
-                  wo.atlasCanvas.width !== uniAW || wo.atlasCanvas.height !== uniAH
-                ) {
-                  uniW = canvas.width; uniH = canvas.height;
-                  uniAW = wo.atlasCanvas.width; uniAH = wo.atlasCanvas.height;
-                  wordUniform![0] = uniW; wordUniform![1] = uniH;
-                  wordUniform![2] = uniAW; wordUniform![3] = uniAH;
-                  device.queue.writeBuffer(wordUniBuf!, 0, wordUniform!);
+              try {
+                const inst = wo.getInstanceData();
+                if (inst && inst.count > 0) {
+                  const device = context.gpu;
+                  syncWordResources?.(inst.count);
+                  if (
+                    canvas.width !== uniW || canvas.height !== uniH ||
+                    wo.atlasCanvas.width !== uniAW || wo.atlasCanvas.height !== uniAH
+                  ) {
+                    uniW = canvas.width; uniH = canvas.height;
+                    uniAW = wo.atlasCanvas.width; uniAH = wo.atlasCanvas.height;
+                    wordUniform![0] = uniW; wordUniform![1] = uniH;
+                    wordUniform![2] = uniAW; wordUniform![3] = uniAH;
+                    device.queue.writeBuffer(wordUniBuf!, 0, wordUniform!);
+                  }
+                  device.queue.writeBuffer(wordInstBuf!, 0, inst.data, 0, inst.count * 12);
+                  const enc = device.createCommandEncoder();
+                  const rp = enc.beginRenderPass({
+                    colorAttachments: [{
+                      view: canvasSurface.context.getCurrentTexture().createView(),
+                      loadOp: "load" as GPULoadOp,
+                      storeOp: "store" as GPUStoreOp,
+                    }],
+                  });
+                  rp.setPipeline(wordPipeline);
+                  rp.setBindGroup(0, wordBind!);
+                  rp.draw(6, inst.count);
+                  rp.end();
+                  device.queue.submit([enc.finish()]);
                 }
-                device.queue.writeBuffer(wordInstBuf!, 0, inst.data, 0, inst.count * 12);
-                const enc = device.createCommandEncoder();
-                const rp = enc.beginRenderPass({
-                  colorAttachments: [{
-                    view: canvasSurface.context.getCurrentTexture().createView(),
-                    loadOp: "load" as GPULoadOp,
-                    storeOp: "store" as GPUStoreOp,
-                  }],
-                });
-                rp.setPipeline(wordPipeline);
-                rp.setBindGroup(0, wordBind!);
-                rp.draw(6, inst.count);
-                rp.end();
-                device.queue.submit([enc.finish()]);
+              } catch (overlayError) {
+                wordPipeline = null;
+                console.error("word overlay disabled:", overlayError);
               }
             }
           }

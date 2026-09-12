@@ -246,9 +246,10 @@ export function DomeStage({ onWordClick }: { onWordClick?: (word: string) => voi
       const R = Math.min(ballR * ORBIT_CALIB.shellRr, w * ORBIT_CALIB.maxWr);
       const hov = hoverRef.current;
       const g = orbitGeom.current;
+      // 词集锁定图集快照(atlas.visibleIdx):rAF 先于 ResizeObserver 触发,
+      // 快速跨断点缩放时若按"当前宽度"重新筛词,会拿桌面词数索引移动图集 → 越界崩溃
       let vi = 0;
-      for (let i = 0; i < FIB.length; i++) {
-        if (WORDS[i].compactHide && w < 768) continue;
+      for (const i of atlas.visibleIdx) {
         const p = FIB[i];
         const a = orbitAngle.current - orbitLag.current[i];
         const cosA = Math.cos(a), sinA = Math.sin(a);
