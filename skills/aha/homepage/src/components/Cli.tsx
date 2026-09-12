@@ -26,7 +26,7 @@ const GROUPS: Group[] = [
     term: "zsh — 安装",
     desc: "一条免交互命令:全局安装、默认 agent、软链映射。装完直接在 agent 里 /aha。",
     script: [
-      { kind: "cmd", text: "npx skills add dimple-smile/agent-skills -s aha -y" },
+      { kind: "cmd", text: "npx skills add dimples-wiki/agent-skills -s aha -y" },
       { kind: "out", text: "✓ aha 已全局安装 · 软链映射 · 零交互", tone: "ok" },
       { kind: "out", text: "# 装好了。下面这行,打在任意 agent 的对话框里:", tone: "dim" },
       { kind: "cmd", text: "/aha RAG" },

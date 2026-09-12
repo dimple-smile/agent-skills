@@ -5,7 +5,7 @@
 
 所以我自己写了个东西:**aha**,一个装进 agent 的概念图解 skill。输入一个概念名,它生成一页分层讲义 HTML:带交互模拟器,可以拖,自动归档进本地书架。这篇讲讲怎么装、怎么用,以及它现在能做什么、做不好什么。
 
-eli5 是开源社区里「像给五岁小孩解释一样」的 agent skill。我实际用下来,思路很好,但产出的内容质量参差不齐,于是想着动手做一个产物稳定一点的版本,做法上借鉴了 eli5、eli5-plus、archify 这几个开源项目([仓库 README](https://github.com/dimple-smile/agent-skills) 里有完整出处)。
+eli5 是开源社区里「像给五岁小孩解释一样」的 agent skill。我实际用下来,思路很好,但产出的内容质量参差不齐,于是想着动手做一个产物稳定一点的版本,做法上借鉴了 eli5、eli5-plus、archify 这几个开源项目([仓库 README](https://github.com/dimples-wiki/agent-skills) 里有完整出处)。
 
 和 eli5 相比有两个差别。
 
@@ -20,7 +20,7 @@ eli5 是开源社区里「像给五岁小孩解释一样」的 agent skill。我
 第一步,安装:
 
 ```bash
-npx skills add dimple-smile/agent-skills -s aha -y
+npx skills add dimples-wiki/agent-skills -s aha -y
 ```
 
 第二步,装进任意支持 skills 的 agent(Claude Code / ZCode / Cursor 都行),对话框里输入:
@@ -101,7 +101,7 @@ agent: (写 HTML 中……)
 - **不便宜。** 一页是几千行 HTML,完整跑下来七八分钟,token 烧得明明白白。当爽文生成器用会心痛。
 - **寓言偶尔过于含蓄。** 同构是硬约束,但碰到抽象概念,故事和机制的映射有时候要盯着答案区才能看懂。
 
-入口汇总:命令上面给过了,主页 [aha.dimples.wiki](https://aha.dimples.wiki)、[GitHub 仓库](https://github.com/dimple-smile/agent-skills)、[skills.sh 主页](https://www.skills.sh/dimple-smile/agent-skills/aha)。
+入口汇总:命令上面给过了,主页 [aha.dimples.wiki](https://aha.dimples.wiki)、[GitHub 仓库](https://github.com/dimples-wiki/agent-skills)、[skills.sh 主页](https://www.skills.sh/dimples-wiki/agent-skills/aha)。
 
 ---
 

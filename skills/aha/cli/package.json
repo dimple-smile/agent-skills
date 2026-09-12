@@ -28,10 +28,10 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dimple-smile/agent-skills.git",
+    "url": "git+https://github.com/dimples-wiki/agent-skills.git",
     "directory": "skills/aha/cli"
   },
-  "homepage": "https://github.com/dimple-smile/agent-skills/tree/main/skills/aha",
+  "homepage": "https://github.com/dimples-wiki/agent-skills/tree/main/skills/aha",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

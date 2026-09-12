@@ -1,6 +1,6 @@
 # @dimples/aha-homepage
 
-[aha](https://github.com/dimple-smile/agent-skills/tree/main/skills/aha) 概念图解引擎的产品主页。
+[aha](https://github.com/dimples-wiki/agent-skills/tree/main/skills/aha) 概念图解引擎的产品主页。
 
 ## 技术栈
 

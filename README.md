@@ -2,7 +2,7 @@
 
 [English](./README_EN.md) | 简体中文
 
-dimple-smile 的 AI 编程代理技能集合，托管于 [skills.sh](https://skills.sh/dimple-smile/agent-skills)。
+dimples-wiki 的 AI 编程代理技能集合，托管于 [skills.sh](https://skills.sh/dimples-wiki/agent-skills)。
 
 ## 可用技能
 
@@ -41,7 +41,7 @@ AI 调试协作方案。将运行时日志通过 HTTP 请求实时收集，用�
 
 **安装：**
 ```bash
-npx skills add dimple-smile/agent-skills -s dev-log -y
+npx skills add dimples-wiki/agent-skills -s dev-log -y
 ```
 
 > dev-log 的 CLI 也已发布到 npm，可独立使用：`npx @dev-log/cli start`
@@ -79,7 +79,7 @@ npx skills add dimple-smile/agent-skills -s dev-log -y
 
 **安装：**
 ```bash
-npx skills add dimple-smile/agent-skills -s llm-wiki -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki -y
 ```
 
 ### aha
@@ -113,7 +113,7 @@ npx skills add dimple-smile/agent-skills -s llm-wiki -y
 
 **安装：**
 ```bash
-npx skills add dimple-smile/agent-skills -s aha -y
+npx skills add dimples-wiki/agent-skills -s aha -y
 ```
 
 > **CLI**：发布到 npm 后用 `npx @dimples/aha check|serve|share`（零运行时依赖）；
@@ -124,24 +124,24 @@ npx skills add dimple-smile/agent-skills -s aha -y
 **安装全部技能：**
 
 ```bash
-npx skills add dimple-smile/agent-skills -s '*' -y
+npx skills add dimples-wiki/agent-skills -s '*' -y
 ```
 
 **按语言安装单个技能：**
 
 ```bash
 # 中文版
-npx skills add dimple-smile/agent-skills -s dev-log -y
-npx skills add dimple-smile/agent-skills -s llm-wiki -y
-npx skills add dimple-smile/agent-skills -s aha -y
+npx skills add dimples-wiki/agent-skills -s dev-log -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki -y
+npx skills add dimples-wiki/agent-skills -s aha -y
 
 # English
-npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki-en -y
 ```
 
 ## 相关链接
 
-- [Skills Directory](https://skills.sh/dimple-smile/agent-skills)
+- [Skills Directory](https://skills.sh/dimples-wiki/agent-skills)
 - [Agent Skills Specification](https://agentskills.io/specification)
 - [Vercel Skills CLI](https://github.com/vercel-labs/skills)
 

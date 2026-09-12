@@ -2,7 +2,7 @@
 
 English | [简体中文](./README.md)
 
-dimple-smile's AI agent skills collection, hosted on [skills.sh](https://skills.sh/dimple-smile/agent-skills).
+dimples-wiki's AI agent skills collection, hosted on [skills.sh](https://skills.sh/dimples-wiki/agent-skills).
 
 ## Available Skills
 
@@ -41,7 +41,7 @@ No screenshots or log copying needed - AI handles debugging autonomously.
 
 **Install:**
 ```bash
-npx skills add dimple-smile/agent-skills -s dev-log -y
+npx skills add dimples-wiki/agent-skills -s dev-log -y
 ```
 
 > The dev-log CLI is also published to npm and works standalone: `npx @dev-log/cli start`
@@ -79,7 +79,7 @@ Turn your LLM into a Wiki maintainer. The LLM incrementally builds and maintains
 
 **Install:**
 ```bash
-npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki-en -y
 ```
 
 ### aha
@@ -100,7 +100,7 @@ Turn any complex concept into a **standalone, visually rich HTML explainer page*
 
 **Install:**
 ```bash
-npx skills add dimple-smile/agent-skills -s aha -y
+npx skills add dimples-wiki/agent-skills -s aha -y
 ```
 
 > CLI: `npx @dimples/aha check|serve|share` once published; until then run `node skills/aha/cli/src/cli.mjs <command>` from the repo.
@@ -110,24 +110,24 @@ npx skills add dimple-smile/agent-skills -s aha -y
 **Install all skills:**
 
 ```bash
-npx skills add dimple-smile/agent-skills -s '*' -y
+npx skills add dimples-wiki/agent-skills -s '*' -y
 ```
 
 **Install individual skills by language:**
 
 ```bash
 # Chinese version
-npx skills add dimple-smile/agent-skills -s dev-log -y
-npx skills add dimple-smile/agent-skills -s llm-wiki -y
-npx skills add dimple-smile/agent-skills -s aha -y
+npx skills add dimples-wiki/agent-skills -s dev-log -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki -y
+npx skills add dimples-wiki/agent-skills -s aha -y
 
 # English
-npx skills add dimple-smile/agent-skills -s llm-wiki-en -y
+npx skills add dimples-wiki/agent-skills -s llm-wiki-en -y
 ```
 
 ## Links
 
-- [Skills Directory](https://skills.sh/dimple-smile/agent-skills)
+- [Skills Directory](https://skills.sh/dimples-wiki/agent-skills)
 - [Agent Skills Specification](https://agentskills.io/specification)
 - [Vercel Skills CLI](https://github.com/vercel-labs/skills)
 

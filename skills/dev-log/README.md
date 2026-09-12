@@ -62,7 +62,7 @@ Claude Code · Cursor · Windsurf · Cline · GitHub Copilot · Codex · Roo · 
 Install the skill so your agent knows how to use `dev-log`:
 
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
+npx skills add https://github.com/dimples-wiki/agent-skills --skill dev-log
 ```
 
 After installation, the AI agent will automatically instrument code, collect logs, and analyze results — no manual configuration needed.
@@ -154,7 +154,7 @@ Claude Code · Cursor · Windsurf · Cline · GitHub Copilot · Codex · Roo · 
 安装 skill，让你的 agent 学会使用 `dev-log`：
 
 ```bash
-npx skills add https://github.com/dimple-smile/agent-skills --skill dev-log
+npx skills add https://github.com/dimples-wiki/agent-skills --skill dev-log
 ```
 
 安装后，AI agent 会自动埋点、收集日志、分析结果——无需手动配置。

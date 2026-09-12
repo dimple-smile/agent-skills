@@ -77,12 +77,12 @@ AI 直接 curl 读取日志并分析
 
 ## dev-log：让 AI 学会自己看日志
 
-[dev-log](https://skills.sh/dimple-smile/agent-skills) 是一个 AI 编程代理技能，通过 HTTP 服务实时收集运行时日志，让 AI 能够自主获取并分析，无需用户手动复制控制台内容。
+[dev-log](https://skills.sh/dimples-wiki/agent-skills) 是一个 AI 编程代理技能，通过 HTTP 服务实时收集运行时日志，让 AI 能够自主获取并分析，无需用户手动复制控制台内容。
 
 ### 安装
 
 ```bash
-npx skills add dimple-smile/agent-skills
+npx skills add dimples-wiki/agent-skills
 ```
 
 ### 工作流程
@@ -185,13 +185,13 @@ AI: 找到问题了，是 validation 返回 false，因为 xxx 字段为空...
 **立即安装体验：**
 
 ```bash
-npx skills add dimple-smile/agent-skills
+npx skills add dimples-wiki/agent-skills
 ```
 
 **相关链接：**
 - [skills.sh](https://skills.sh)（Vercel 出品的 Skills 平台，强烈推荐）
-- [Skills Directory](https://skills.sh/dimple-smile/agent-skills)
-- [GitHub 仓库](https://github.com/dimple-smile/agent-skills)
+- [Skills Directory](https://skills.sh/dimples-wiki/agent-skills)
+- [GitHub 仓库](https://github.com/dimples-wiki/agent-skills)
 
 ---
 

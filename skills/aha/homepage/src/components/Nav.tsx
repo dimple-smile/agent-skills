@@ -63,7 +63,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
         <div className="flex items-center gap-3.5">
           <Wordmark />
           <a
-            href="https://www.skills.sh/dimple-smile/agent-skills/aha"
+            href="https://www.skills.sh/dimples-wiki/agent-skills/aha"
             target="_blank"
             rel="noreferrer"
             className="hidden items-center gap-1.5 rounded-full border border-transparent px-3 py-1 font-mono text-[11px] font-semibold text-cream-3 transition-colors hover:border-gold/60 hover:bg-gold/50 hover:text-gold sm:flex"
@@ -86,7 +86,7 @@ export function Nav({ onStart }: { onStart: () => void }) {
         </nav>
         <div className="flex items-center gap-3">
           <a
-            href="https://github.com/dimple-smile/agent-skills"
+            href="https://github.com/dimples-wiki/agent-skills"
             target="_blank"
             rel="noreferrer"
             className="hidden items-center gap-1.5 rounded-full border border-line bg-ink-850 px-3.5 py-1.5 text-xs font-semibold text-cream-2 transition-colors hover:border-line-2 hover:text-cream-1 sm:flex"

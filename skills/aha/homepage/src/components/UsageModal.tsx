@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, ChevronLeft, ChevronRight, Copy, X } from "lucide-react";
 
-export const INSTALL_CMD = "npx skills add dimple-smile/agent-skills -s aha -y";
+export const INSTALL_CMD = "npx skills add dimples-wiki/agent-skills -s aha -y";
 export const EXAMPLE_WORD = "贝叶斯定理";
 
 /** 菜单入口打开时的轮换词(点击词打开则定格) */

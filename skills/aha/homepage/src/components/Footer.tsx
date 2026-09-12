@@ -38,7 +38,7 @@ export function Footer() {
         <div className="mt-24 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 border-t border-line/40 pt-7 font-mono text-[11px]">
           <a
             className="flex items-center gap-1.5 text-cream-4 transition-colors hover:text-gold"
-            href="https://github.com/dimple-smile/agent-skills"
+            href="https://github.com/dimples-wiki/agent-skills"
             target="_blank"
             rel="noreferrer"
           >
@@ -46,7 +46,7 @@ export function Footer() {
           </a>
           <a
             className="flex items-center gap-1.5 text-cream-4 transition-colors hover:text-gold"
-            href="https://www.skills.sh/dimple-smile/agent-skills/aha"
+            href="https://www.skills.sh/dimples-wiki/agent-skills/aha"
             target="_blank"
             rel="noreferrer"
           >
