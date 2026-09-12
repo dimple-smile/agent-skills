@@ -749,8 +749,9 @@ export async function startDaemon(opts = {}) {
   if (existsSync(pidFile)) {
     const pid = Number(readFileSync(pidFile, "utf8").trim());
     if (pidAlive(pid) && (await probe(port))) {
-      // 在跑就换血:SIGUSR2 只关 HTTP、保留隧道进程,等端口释放后拉起新守护
-      try { process.kill(pid, "SIGUSR2"); } catch {}
+      // 在跑就换血:POSIX 用 SIGUSR2(只关 HTTP、保留隧道进程);
+      // Windows 无此信号,直接终止旧守护(隧道进程一并退出)
+      try { process.kill(pid, process.platform === "win32" ? "SIGTERM" : "SIGUSR2"); } catch {}
       for (let i = 0; i < 40 && (await probe(port, 250)); i++) {
         await new Promise((r) => setTimeout(r, 150));
       }
@@ -764,7 +765,8 @@ export async function startDaemon(opts = {}) {
     return { pid: -1, port, dir, reused: true, count };
   }
 
-  const self = new URL("./cli.mjs", import.meta.url).pathname; // 入口必须是 cli.mjs（serve.mjs 只导出不执行）
+  // fileURLToPath 必须用:URL.pathname 在 Windows 是 "/C:/..." 非法路径(daemon 起不来)
+  const self = fileURLToPath(new URL("./cli.mjs", import.meta.url)); // 入口必须是 cli.mjs（serve.mjs 只导出不执行）
   const logFd = openSync(logFile, "a");
   const child = spawn(process.execPath, [self, "serve", dir, "--port", String(port)], {
     detached: true,
