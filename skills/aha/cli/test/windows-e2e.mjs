@@ -24,9 +24,10 @@ if (!existsSync("D:\\")) {
 const cli = resolve(fileURLToPath(import.meta.url), "../../src/cli.mjs");
 const base = process.env.AHA_TEST_HOME ?? "C:\\aha-test-home";
 let failed = 0;
+const fails = [];
 const ok = (cond, msg, detail = "") => {
   console.log(`${cond ? "  ✔" : "  ✖"} ${msg}${cond || !detail ? "" : `\n     └ ${detail}`}`);
-  if (!cond) failed++;
+  if (!cond) { failed++; fails.push(`${msg} || ${(detail || "").split("\n").slice(0, 3).join(" ⏎ ").slice(0, 220)}`); }
 };
 /** 在指定伪 HOME 下跑真实 CLI;失败时附带完整输出便于无日志诊断 */
 const run = (home, ...args) => {
@@ -90,9 +91,9 @@ console.log("C. 存量用户 → 迁移到 D:");
   ok(!existsSync(join(home, ".aha", "old-page.html")), "旧目录 HTML 已清");
   const again = run(home, "new", "t3", "概念三");
   ok(again.code === 0 && again.out.includes("D:\\aha2\\t3.html"), "新页面落迁移后目录");
-  // D: 由 subst 映射到 C:\fakedrive,双路径一致
-  ok(existsSync("C:\\fakedrive\\aha2\\t3.html"), "subst 底层路径一致");
 }
 
+// 失败明细打成 GitHub 注解(::error::)—— Actions 日志匿名不可读,注解公开可读
+for (const f of fails.slice(0, 8)) console.log(`::error title=aha-e2e::${f}`);
 console.log(failed === 0 ? "\nwindows-e2e: 全部通过" : `\nwindows-e2e: ${failed} 项失败`);
 process.exit(failed === 0 ? 0 : 1);

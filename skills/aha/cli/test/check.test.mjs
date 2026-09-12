@@ -212,7 +212,8 @@ test("M4: headings inside HTML comments are not counted", () => {
 
 test("canonical sync: embedded canonical equals assets/design-tokens.css", async () => {
   const { CANONICAL_TOKENS } = await import("../src/canonical-tokens.mjs");
-  const css = readFileSync(join(here, "../../assets/design-tokens.css"), "utf8");
+  // 归一换行:Windows checkout 的 autocrlf 会把 assets 变 CRLF,内容语义没变
+  const css = readFileSync(join(here, "../../assets/design-tokens.css"), "utf8").replace(/\r\n/g, "\n");
   assert.equal(CANONICAL_TOKENS, css);
 });
 

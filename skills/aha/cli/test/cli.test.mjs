@@ -76,6 +76,6 @@ test("aha new: scaffold passes all gates before any content fill", async () => {
 
 test("-v / --version prints package.json version", () => {
   const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  const out = execFileSync(process.execPath, [new URL("../src/cli.mjs", import.meta.url).pathname, "-v"], { encoding: "utf8" }).trim();
+  const out = execFileSync(process.execPath, [fileURLToPath(new URL("../src/cli.mjs", import.meta.url)), "-v"], { encoding: "utf8" }).trim();
   assert.ok(out.includes(pkg.version), `输出应含版本号 ${pkg.version}，实际: ${out}`);
 });

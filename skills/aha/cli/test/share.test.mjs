@@ -56,7 +56,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startTunnel, spawnTracked } from "../src/share.mjs";
 
-test("B5: startTunnel reports death via onDown after URL was delivered", async () => {
+test("B5: startTunnel reports death via onDown after URL was delivered", { skip: process.platform === "win32" ? "POSIX shell 假二进制,Windows 无法 spawn" : false }, async () => {
   const dir = mkdtempSync(join(tmpdir(), "aha-fakecf-"));
   const bin = join(dir, "fake-cloudflared");
   writeFileSync(bin, [
