@@ -16,7 +16,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/check.test.mjs test/cli.test.mjs test/home.test.mjs test/serve.test.mjs test/share.test.mjs"
   },
   "keywords": [
     "aha",

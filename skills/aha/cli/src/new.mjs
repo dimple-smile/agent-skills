@@ -6,8 +6,7 @@
 
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { ensurePagesDir, storageChoice, suggestNonCDrive, ahaRoot } from "./home.mjs";
-import { readdirSync } from "node:fs";
+import { ensurePagesDir, storageChoice, suggestNonCDrive, ahaRoot, countHtmlPages } from "./home.mjs";
 import { CANONICAL_TOKENS } from "./canonical-tokens.mjs";
 
 export function scaffoldHtml(title, slug) {
@@ -293,7 +292,7 @@ export function newCommand(slugArg, titleArg) {
  * @param {number} [count] 存量篇数(仅 migrate 文案用)
  * @returns {boolean}
  */
-export function windowsStorageGuard(action = storageChoice(), suggested = suggestNonCDrive() ?? "D:\\aha", count = readdirSync(ahaRoot()).filter((n) => n.endsWith(".html")).length) {
+export function windowsStorageGuard(action = storageChoice(), suggested = suggestNonCDrive() ?? "D:\\aha", count = countHtmlPages(ahaRoot())) {
   if (action === "none") return false;
   console.error("aha: 需要先决定 HTML 产物的存储位置(当前默认在 C 盘)。");
   if (action === "first") {

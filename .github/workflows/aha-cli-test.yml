@@ -25,7 +25,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: node --test test/
+      # 显式列出测试文件:node 22 的 --test 收目录参数会当模块路径解析
+      # (MODULE_NOT_FOUND 回归,18/26 正常);glob 在 pwsh 下不展开 —— 列表全版本全 shell 通吃
+      - run: node --test test/check.test.mjs test/cli.test.mjs test/home.test.mjs test/serve.test.mjs test/share.test.mjs
 
   # Windows 端到端:subst 造一个 D: 盘,跑首次引导 → 迁移 → 留守全链路
   windows-e2e:
@@ -41,8 +43,11 @@ jobs:
       - name: "Map a fake D: drive (subst)"
         shell: pwsh
         run: |
+          Write-Host "existing drives: $((Get-PSDrive -PSProvider FileSystem).Name -join ',')"
           New-Item -ItemType Directory -Force C:\fakedrive | Out-Null
           subst D: C:\fakedrive
+          if ($LASTEXITCODE -ne 0) { Write-Host "subst exit $LASTEXITCODE, retry via cmd"; cmd /c "subst D: C:\fakedrive" }
+          subst
           if (-not (Test-Path D:\)) { Write-Error "subst 未生效"; exit 1 }
       - name: E2E first-run guard / migrate / keep-c
         shell: bash

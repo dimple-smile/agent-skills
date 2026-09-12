@@ -77,6 +77,12 @@ export function ensurePagesDir(dir = pagesDir()) {
   return dir;
 }
 
+/** 数目录里的 HTML 篇数;目录不存在视同 0(全新用户没有 ~/.aha —— CI 实测踩过) */
+export function countHtmlPages(dir) {
+  try { return readdirSync(dir).filter((n) => n.endsWith(".html")).length; }
+  catch { return 0; }
+}
+
 /**
  * Windows 存储选择决策(纯函数,可测试):new 命令调用,决定是否要拦下让用户选。
  *   "none"    正常放行(非 Windows / 已有明确配置 / 只有 C 盘没得选 / 环境变量已指定)
@@ -90,7 +96,7 @@ export function storageChoice(s = {}) {
     platform = process.platform,
     envSet = Boolean(process.env.AHA_HOME && process.env.AHA_HOME.trim()),
     configured = Boolean(readConfig().pagesDir),
-    htmlCount = readdirSync(ahaRoot()).filter((n) => n.endsWith(".html")).length,
+    htmlCount = countHtmlPages(ahaRoot()),
     hasAltDrive = suggestNonCDrive() !== null,
   } = s;
   if (platform !== "win32") return "none";
