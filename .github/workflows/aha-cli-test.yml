@@ -1,0 +1,51 @@
+# aha CLI 多平台测试 —— 重点覆盖 Windows 真机路径
+# (macOS 本地测不到 win32 分支:盘符探测 / 引导闸门 / 跨盘迁移)
+name: aha-cli
+
+on:
+  push:
+    paths: ["skills/aha/cli/**", ".github/workflows/aha-cli-test.yml"]
+  pull_request:
+    paths: ["skills/aha/cli/**", ".github/workflows/aha-cli-test.yml"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [18, 22]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: skills/aha/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --test test/
+
+  # Windows 端到端:subst 造一个 D: 盘,跑首次引导 → 迁移 → 留守全链路
+  windows-e2e:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: skills/aha/cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: "Map a fake D: drive (subst)"
+        shell: cmd
+        run: |
+          mkdir C:\fakedrive
+          subst D: C:\fakedrive
+          if exist D:\ (echo D: mapped) else (exit 1)
+      - name: E2E first-run guard / migrate / keep-c
+        shell: bash
+        env:
+          AHA_TEST_HOME: C:\aha-test-home
+        run: node test/windows-e2e.mjs
