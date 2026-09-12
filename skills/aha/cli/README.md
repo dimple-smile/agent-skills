@@ -4,7 +4,7 @@ CLI companion for the [aha agent skill](../) — quality gates, local server, an
 free public sharing for generated explainer HTML pages.
 
 ```
-aha start [dir] [--port N] idempotent background daemon (reuse if running; log ~/.aha/.serve.log) + stop
+aha start [dir] [--port N] background daemon (refreshes if already running; log <pages-dir>/.serve.log) + stop
 aha check <file.html>      11 static quality gates + honest receipt (exit 1 on any failure)
 aha serve [dir] [--port N] local server (default dir ~/.aha, port 7332); index page lists all generated pages
 aha share [dir] [--port N] serve + Cloudflare quick tunnel (free https://*.trycloudflare.com link, no account)

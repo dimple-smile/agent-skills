@@ -226,28 +226,33 @@ test("public (tunnel) visitors get NO share-token meta injected", async () => {
   });
 });
 
-// —— start/stop 守护命令（dev-log 同构）：幂等启动、复用、干净停止 ——
+// —— start/stop 守护命令（dev-log 同构）：首启拉起、二次换血、干净停止 ——
 
-test("daemon: start spawns background server, reuses when alive, stop kills it", async () => {
+test("daemon: start spawns server, second start refreshes (换血), stop kills it", async () => {
   const { startDaemon, stopDaemon } = await import("../src/serve.mjs");
   const dir = mkdtempSync(join(tmpdir(), "aha-daemon-"));
   writeFileSync(join(dir, "p1.html"), "<!DOCTYPE html><html lang=zh><head><title>P1</title></head></html>");
   const port = 7391;
+  // 兜底:断言失败也要停守护,否则泄漏进程占住 7391 毒化后续运行
+  try {
+    const a = await startDaemon({ dir, port });
+    assert.equal(a.reused, false);
+    assert.ok(a.pid > 0);
+    await new Promise((r) => setTimeout(r, 300));
+    const r1 = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(r1.status, 200);
+    assert.ok((await r1.text()).includes("p1.html"));
 
-  const a = await startDaemon({ dir, port });
-  assert.equal(a.reused, false);
-  assert.ok(a.pid > 0);
-  await new Promise((r) => setTimeout(r, 300));
-  const r1 = await fetch(`http://127.0.0.1:${port}/`);
-  assert.equal(r1.status, 200);
-  assert.ok((await r1.text()).includes("p1.html"));
-
-  const b = await startDaemon({ dir, port });
-  assert.equal(b.reused, true, "二次 start 必须复用而非再起进程");
-  assert.equal(b.pid, a.pid);
-
-  await stopDaemon({ dir, port });
-  await new Promise((r) => setTimeout(r, 400));
+    // v0.6.0 起 start 语义为换血:旧进程 SIGUSR2 退场,拉起新守护接管端口
+    const b = await startDaemon({ dir, port });
+    assert.equal(b.reused, false, "二次 start = 换血(新进程),而非复用旧 pid");
+    assert.notEqual(b.pid, a.pid);
+    const r2 = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(r2.status, 200, "换血后端口仍由新守护服务");
+  } finally {
+    await stopDaemon({ dir, port }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 400));
+  }
   const gone = await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(600) }).then(() => false, () => true);
   assert.equal(gone, true, "stop 后端口应关闭");
   assert.equal(existsSync(join(dir, ".serve.pid")), false, "pid 文件应清理");

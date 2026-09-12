@@ -39,11 +39,11 @@ jobs:
         with:
           node-version: 22
       - name: "Map a fake D: drive (subst)"
-        shell: cmd
+        shell: pwsh
         run: |
-          mkdir C:\fakedrive
+          New-Item -ItemType Directory -Force C:\fakedrive | Out-Null
           subst D: C:\fakedrive
-          if exist D:\ (echo D: mapped) else (exit 1)
+          if (-not (Test-Path D:\)) { Write-Error "subst 未生效"; exit 1 }
       - name: E2E first-run guard / migrate / keep-c
         shell: bash
         env:
