@@ -13,7 +13,7 @@ import { extname, join, normalize, resolve, sep, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractMarkdown } from "./export-md.mjs";
 import { existsSync, mkdirSync, statSync, readFileSync, writeFileSync, unlinkSync, openSync } from "node:fs";
-import { homedir } from "node:os";
+import { pagesDir, ensurePagesDir } from "./home.mjs";
 
 export const DEFAULT_PORT = 7332;
 
@@ -23,7 +23,7 @@ function json(res, code, obj) {
 
 /** CLI 随包资产(导出菜单脚本 + vendor 库) */
 const ASSETS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "assets");
-const EXPORTS_DIR = join(homedir(), ".aha", "exports");
+const EXPORTS_DIR = join(pagesDir(), "exports");
 const VENDOR_FILES = new Set([
   "export-menu.js",
   "vendor/html-to-image.js",
@@ -411,22 +411,20 @@ time{font:500 .76rem/1 ui-monospace,Menlo,monospace;color:var(--t3);font-variant
 
 /**
  * 解析服务目录：显式指定的目录必须存在（否则抛错）；
- * 未指定 → 统一主页 ~/.aha（自动创建），所有生成页都住在那里。
+ * 未指定 → AHA_HOME 环境变量优先，默认 ~/.aha（自动创建），所有生成页都住在那里。
  * @param {string | undefined} dirArg
  * @param {string} [cwd]
- * @param {string} [home]
+ * @param {string} [home] 完整主目录(测试注入用;缺省走 AHA_HOME / ~/.aha)
  * @returns {string}
  */
-export function resolveServeDir(dirArg, cwd = process.cwd(), home = homedir()) {
+export function resolveServeDir(dirArg, cwd = process.cwd(), home) {
   if (dirArg) {
     const dir = resolve(cwd, dirArg);
     if (!existsSync(dir)) throw new Error(`目录不存在: ${dir}`);
     if (!statSync(dir).isDirectory()) throw new Error(`不是目录（serve 只服务目录）: ${dir}`);
     return dir;
   }
-  const dir = join(home, ".aha");
-  mkdirSync(dir, { recursive: true });
-  return dir;
+  return ensurePagesDir(home);
 }
 
 /**

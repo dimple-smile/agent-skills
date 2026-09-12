@@ -11,6 +11,13 @@ aha share [dir] [--port N] serve + Cloudflare quick tunnel (free https://*.trycl
 ```
 
 - Zero runtime dependencies (Node ≥ 18, `node:*` built-ins only)
+- Storage layout: the `~/.aha` root always exists (holds `config.json`,
+  `bin/cloudflared`, daemon pid/log); the HTML pages directory is whatever
+  `config.json` says. On Windows, `aha new` guides the choice exactly once —
+  first run suggests a non-C drive (D:…Z:, writable, ≥1 GiB free), existing
+  users get `aha config "D:\aha" --migrate` (moves pages) or
+  `aha config --keep-c` (stay, never asked again). `AHA_HOME` env overrides
+  everything for CI/tests
 - Pages are single-file self-contained HTML; `check` enforces that contract
   (single h1, heading order, head meta, img alt, inlined design tokens,
   no color literals outside tokens, class registry, script syntax)

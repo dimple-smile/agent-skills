@@ -6,7 +6,8 @@
 
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { ensurePagesDir, storageChoice, suggestNonCDrive, ahaRoot } from "./home.mjs";
+import { readdirSync } from "node:fs";
 import { CANONICAL_TOKENS } from "./canonical-tokens.mjs";
 
 export function scaffoldHtml(title, slug) {
@@ -267,9 +268,12 @@ const SIM_MS_PER_STEP = 2400;
 
 /** aha new <slug> [标题] —— 幂等：已存在则拒绝 */
 export function newCommand(slugArg, titleArg) {
-  const slug = (slugArg ?? "").replace(/[^a-z0-9-]/gi, "-").replace(/^-|-$/g, "");
+  // slug 只作文件名用:非法字符归一为 "-",整段剥掉首尾连字符;
+  // 纯中文等清洗后为空 → 报用法错(agent 应传 ASCII kebab-case,中文放标题参数)
+  const slug = (slugArg ?? "").replace(/[^a-z0-9-]/gi, "-").replace(/^-+|-+$/g, "");
   if (!slug) { console.error("用法: aha new <slug> [标题]"); process.exit(2); }
-  const page = join(homedir(), ".aha", slug + ".html");
+  if (windowsStorageGuard()) process.exit(2);
+  const page = join(ensurePagesDir(), slug + ".html");
   if (existsSync(page)) { console.error(`已存在: ${page}（换 slug 或直接编辑它）`); process.exit(2); }
   const title = titleArg ?? slug;
   writeFileSync(page, scaffoldHtml(title, slug));
@@ -277,4 +281,29 @@ export function newCommand(slugArg, titleArg) {
   console.log(`  含: canonical tokens + 工具条 + 引擎 + 七节空槽（SLOT1-7）`);
   console.log(`  下一步: 逐槽 Edit 填内容（禁止整页 Write），完成后 aha check`);
   return page;
+}
+
+/**
+ * Windows 存储选择闸门(storageChoice 决策):首次使用必须选位置,
+ * 有存量页面则选迁移或留守。返回 true 表示拦下(调用方退出码 2)——
+ * 由调用方(agent)把选项转述给用户,选定后跑一条 aha config 命令再重跑。
+ * 选过一次即写入 config.json,之后永不打扰。参数可注入,便于测试文案。
+ * @param {"none"|"first"|"migrate"} [action]
+ * @param {string} [suggested]
+ * @param {number} [count] 存量篇数(仅 migrate 文案用)
+ * @returns {boolean}
+ */
+export function windowsStorageGuard(action = storageChoice(), suggested = suggestNonCDrive() ?? "D:\\aha", count = readdirSync(ahaRoot()).filter((n) => n.endsWith(".html")).length) {
+  if (action === "none") return false;
+  console.error("aha: 需要先决定 HTML 产物的存储位置(当前默认在 C 盘)。");
+  if (action === "first") {
+    console.error(`  推荐:${suggested}(检测到该盘空间充足)—— 也可换成任意其他目录`);
+    console.error(`  设置:aha config "${suggested}"   之后重新运行本命令`);
+  } else {
+    console.error(`  检测到 ${count} 篇存量页面在 C 盘,二选一:`);
+    console.error(`  1) 迁移到其他盘(推荐):aha config "${suggested}" --migrate`);
+    console.error(`  2) 继续存放在 C 盘:aha config --keep-c`);
+    console.error(`  选定后重新运行本命令`);
+  }
+  return true;
 }

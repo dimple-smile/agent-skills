@@ -54,6 +54,10 @@ tags:
 npx @dimples/aha new <slug> "<概念名>"
 ```
 
+若命令退出并输出"存储位置选择"(仅 Windows 首次/存量用户会出现):
+把给出的选项**转述给用户**,按其选择执行对应的 `aha config ...` 命令,
+然后重新运行本命令即可。
+
 **零文件读取、零探索命令**。脚手架 = canonical tokens + 工具条 + 引擎 +
 七节空槽，未填即过 11 门。跑完这条命令直接进 Step 2，**不要 ls/find/grep
 skill 目录、不要读任何 assets 或 cli 源码**（四轮基准测试证明全是时间黑洞）。
@@ -69,7 +73,7 @@ SVG 取色 `var(--cat-a/b/c)` / `var(--accent)` / `var(--warn)` / `var(--ok)`。
 ### Step 3 · check + 交付（跳过浏览器验证）
 
 ```bash
-npx @dimples/aha check ~/.aha/<slug>.html && npx @dimples/aha start
+npx @dimples/aha check <aha new 输出的路径> && npx @dimples/aha start
 ```
 
 check 过 → `aha start` → 交付。**不要打开浏览器截图/点击模拟器** ——
@@ -107,7 +111,7 @@ http://127.0.0.1:7332/<slug>.html
 ### 质量门（Step 3 的详情）
 
 ```bash
-npx @dimples/aha check ~/.aha/<slug>.html
+npx @dimples/aha check <aha new 输出的路径>   # new 只产脚手架,内容由 Step 2 的 Edit 填入同一文件,路径不变
 ```
 
 门不过 → 修 → 重跑。**每轮只修被点名的那一个问题**；连续两轮无改善 →
@@ -223,7 +227,8 @@ canonical 一致 / tokens 块外无颜色字面量（含 SVG 属性与命名色�
 ## English quick reference
 
 **Purpose**: turn any complex concept into a standalone, self-contained HTML
-explainer that builds a *correct mental model*. Output goes to `~/.aha/<slug>.html`.
+explainer that builds a *correct mental model*. The `aha new` command prints
+the output path — always check/serve the path it actually reports.
 
 **Workflow**: ① read `assets/reference.html` (defines the form; tokens CSS is
 inlined verbatim — never modified) → ② calibrate entry level L1/L2/L3 from the

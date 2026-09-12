@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, mkdirSync, existsSync, symlinkSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 import { startServer } from "../src/serve.mjs";
 
@@ -57,15 +57,45 @@ test("serve: port 0 picks an ephemeral port and survives concurrent requests", a
   });
 });
 
-test("serve: resolveServeDir rejects missing dir; default is ~/.aha (auto-created)", async () => {
+test("serve: resolveServeDir rejects missing dir; default is the configured pages dir (auto-created)", async () => {
   const { resolveServeDir } = await import("../src/serve.mjs");
   // 显式指定但不存在 → 抛错（CLI 层转为退出码）
   assert.throws(() => resolveServeDir(join(tmp, "nope")), /目录不存在/);
-  // 未指定 → 统一主页 ~/.aha，不存在则自动创建
+  // 未指定 → 页面目录(注入完整目录),不存在则自动创建
   const fakeHome = mkdtempSync(join(tmpdir(), "aha-home-"));
   const dir = resolveServeDir(undefined, tmp, fakeHome);
-  assert.equal(dir, join(fakeHome, ".aha"));
+  assert.equal(dir, fakeHome);
   assert.ok(existsSync(dir), "默认目录应被自动创建");
+});
+
+test("home: pagesDir precedence — AHA_HOME env > config.json > root", async () => {
+  const { pagesDir, readConfig, writeConfig, ahaRoot } = await import("../src/home.mjs");
+  const root = mkdtempSync(join(tmpdir(), "aha-root-"));
+  const fakePages = mkdtempSync(join(tmpdir(), "aha-pages-"));
+  const prev = process.env.AHA_HOME;
+  try {
+    assert.equal(pagesDir(root), root, "无配置无环境变量 → 根目录自身");
+    writeConfig({ pagesDir: fakePages }, root);
+    assert.ok(readConfig(root).pagesDir.includes("aha-pages"), "配置写入可回读");
+    assert.equal(pagesDir(root), fakePages, "config.json pagesDir 生效");
+    process.env.AHA_HOME = tmp;
+    assert.equal(pagesDir(root), tmp, "环境变量优先于配置文件");
+  } finally {
+    if (prev === undefined) delete process.env.AHA_HOME; else process.env.AHA_HOME = prev;
+  }
+  assert.equal(ahaRoot(), join(homedir(), ".aha"), "根目录恒为 ~/.aha");
+});
+
+test("serve: AHA_HOME env overrides the default home", async () => {
+  const { resolveServeDir } = await import("../src/serve.mjs");
+  const fake = mkdtempSync(join(tmpdir(), "aha-env-"));
+  const prev = process.env.AHA_HOME;
+  try {
+    process.env.AHA_HOME = fake;
+    assert.equal(resolveServeDir(undefined, tmp), fake);
+  } finally {
+    if (prev === undefined) delete process.env.AHA_HOME; else process.env.AHA_HOME = prev;
+  }
 });
 
 // —— Web Share API：索引页点击 share → 自动安装/启动 cloudflared ——

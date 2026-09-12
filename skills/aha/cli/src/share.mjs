@@ -15,7 +15,7 @@
 import { spawn, spawnSync, execFile } from "node:child_process";
 import { writeFile, mkdir, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
+import { ahaRoot } from "./home.mjs";
 import { join } from "node:path";
 import { startServer, DEFAULT_PORT, friendlyListenError, resolveServeDir } from "./serve.mjs";
 
@@ -49,8 +49,8 @@ export function pickInstallMethod(platform = process.platform, hasBrew = null) {
 
 const isWin = () => process.platform === "win32";
 const localBin = () =>
-  isWin() ? join(homedir(), ".aha", "bin", "cloudflared.exe")
-          : join(homedir(), ".aha", "bin", "cloudflared");
+  isWin() ? join(ahaRoot(), "bin", "cloudflared.exe")
+          : join(ahaRoot(), "bin", "cloudflared");
 
 /** cloudflared 可执行文件解析：PATH 优先，其次 ~/.aha/bin/；找不到返回 null */
 export function resolveCloudflared() {
@@ -102,7 +102,7 @@ export async function ensureCloudflared(onLog = () => {}, killables = []) {
         process.platform === "darwin"
           ? process.arch === "arm64" ? "darwin-arm64" : "darwin-amd64"
           : process.arch === "arm64" ? "linux-arm64" : "linux-amd64";
-      const binDir = join(homedir(), ".aha", "bin");
+      const binDir = join(ahaRoot(), "bin");
       const tgz = join(binDir, `cloudflared-${plat}.tgz`);
       onLog(`下载 cloudflared ${CLOUDFLARED_VERSION}（${plat}）…`);
       await mkdir(binDir, { recursive: true });
