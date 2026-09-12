@@ -94,7 +94,7 @@ function Step({
 
 function CmdLine({ text, swapKey, dir = 1 }: { text: string; swapKey?: string; dir?: number }) {
   const codeCls =
-    "min-w-0 flex-1 break-all font-mono text-[10.5px] leading-relaxed text-cream-2 sm:break-normal sm:whitespace-nowrap sm:text-xs";
+    "min-w-0 flex-1 break-words font-mono text-[10.5px] leading-relaxed text-cream-2 sm:break-normal sm:whitespace-nowrap sm:text-xs";
   return (
     <div className="mt-2 flex items-center gap-2 rounded-lg border border-line bg-ink-950 py-2 pl-3 pr-2">
       <span aria-hidden className="shrink-0 font-mono text-xs text-gold">
@@ -129,6 +129,12 @@ export function UsageModal({
   usage: { word: string; source: "fall" | "marquee" | "menu" } | null;
   onClose: () => void;
 }) {
+  // 广播开/关:移动端卡片舞台监听后暂停/恢复自动轮播(布尔依赖,只随开关变化触发)
+  const open = usage !== null;
+  useEffect(() => {
+    window.dispatchEvent(new Event(open ? "aha:usage-open" : "aha:usage-close"));
+  }, [open]);
+
   useEffect(() => {
     if (usage === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -211,7 +217,7 @@ export function UsageModal({
                   type="button"
                   onClick={prev}
                   aria-label="上一个概念"
-                  className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream-4/70 opacity-60 transition-all hover:bg-ink-850 hover:text-gold hover:opacity-100 active:scale-90"
+                  className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream-4/70 opacity-60 transition-all hover:bg-ink-850 hover:text-gold hover:opacity-100 active:scale-90 sm:size-7"
                 >
                   <ChevronLeft size={15} />
                 </button>
@@ -233,7 +239,7 @@ export function UsageModal({
                   type="button"
                   onClick={next}
                   aria-label="下一个概念"
-                  className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream-4/70 opacity-60 transition-all hover:bg-ink-850 hover:text-gold hover:opacity-100 active:scale-90"
+                  className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-cream-4/70 opacity-60 transition-all hover:bg-ink-850 hover:text-gold hover:opacity-100 active:scale-90 sm:size-7"
                 >
                   <ChevronRight size={15} />
                 </button>
@@ -244,7 +250,7 @@ export function UsageModal({
               type="button"
               onClick={onClose}
               aria-label="关闭"
-              className="absolute top-4 right-4 z-20 cursor-pointer rounded-md p-1 text-cream-3 transition-colors hover:bg-ink-850 hover:text-cream-1"
+              className="absolute top-3 right-3 z-20 cursor-pointer rounded-lg p-3 text-cream-3 transition-colors hover:bg-ink-850 hover:text-cream-1"
             >
               <X size={16} />
             </button>
@@ -296,7 +302,7 @@ export function UsageModal({
               >
                 看它生成的图解长什么样 →
               </a>
-              <span className="font-mono text-[10px] text-cream-4">Esc 关闭</span>
+              <span className="hidden font-mono text-[10px] text-cream-4 sm:inline">Esc 关闭</span>
             </div>
 
             </div>

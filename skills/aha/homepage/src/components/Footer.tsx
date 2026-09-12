@@ -29,7 +29,7 @@ export function Footer() {
             <span aria-hidden className="shrink-0 font-mono text-sm font-bold text-gold">
               $
             </span>
-            <code className="min-w-0 flex-1 break-all font-mono text-[11px] leading-relaxed text-cream-1 sm:break-normal sm:whitespace-nowrap md:text-xs">
+            <code className="min-w-0 flex-1 break-words font-mono text-[11px] leading-relaxed text-cream-1 sm:break-normal sm:whitespace-nowrap md:text-xs">
               {INSTALL_CMD}
             </code>
             <CopyButton text={INSTALL_CMD} />

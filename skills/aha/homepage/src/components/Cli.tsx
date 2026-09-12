@@ -137,7 +137,7 @@ function Terminal({ script, title }: { script: Line[]; title: string }) {
         </div>
         <span className="font-mono text-[11px] text-cream-4">{title}</span>
       </div>
-      <div className="min-h-[248px] p-5 font-mono text-[13px] leading-[1.9]">
+      <div className="min-h-[248px] break-words p-5 font-mono text-[13px] leading-[1.9]">
         {script.slice(0, progress.line).map((l, i) => (
           <LineView key={i} line={l} />
         ))}
@@ -180,8 +180,9 @@ export function Cli() {
   return (
     <section id="cli" className="scroll-mt-24 border-t border-line/30 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-5">
-        <div className="grid items-start gap-14 lg:grid-cols-[6fr_6fr]">
-          <div className="self-start lg:sticky lg:top-24">
+        <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-[6fr_6fr]">
+          {/* 移动端:标题/卡片在前,终端紧随其后 —— 点卡片能立刻看到重播 */}
+          <div className="order-2 self-start lg:order-none lg:sticky lg:top-24">
             <Reveal>
               <Terminal script={group.script} title={group.term} />
             </Reveal>

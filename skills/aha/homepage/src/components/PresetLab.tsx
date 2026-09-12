@@ -134,7 +134,7 @@ export function PresetLab() {
   return (
     <section id="presets" className="scroll-mt-24 border-t border-line/30 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-5">
-        <div className="grid items-center gap-14 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
           <div className="order-2 lg:order-1">
             <Reveal>
               <MiniPage preset={preset} theme={theme} />

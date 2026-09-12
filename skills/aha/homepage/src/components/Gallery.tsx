@@ -170,14 +170,16 @@ export function Gallery({ onMore }: { onMore: () => void }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="grid gap-6 lg:grid-cols-[7fr_5fr]"
+              className="grid grid-cols-1 gap-6 lg:grid-cols-[7fr_5fr]"
             >
-              <BrowserFrame
-                url={active.url}
-                src={active.shot}
-                alt={`aha 图解页:${active.title} 首屏`}
-              />
-              <div className="flex flex-col gap-5">
+              <div className="order-2 lg:order-1">
+                <BrowserFrame
+                  url={active.url}
+                  src={active.shot}
+                  alt={`aha 图解页:${active.title} 首屏`}
+                />
+              </div>
+              <div className="order-1 flex min-w-0 flex-col gap-5 lg:order-2">
                 <div className="rounded-2xl border border-line bg-ink-850/60 p-5">
                   <h3 className="text-xl font-bold">{active.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-cream-2">{active.dek}</p>

@@ -94,7 +94,7 @@ function FableTerm() {
         <TerminalSquare size={12} className="text-gold" />
         <span className="font-mono text-[10px] text-cream-4">agent 会话 · 寓言这样触发</span>
       </div>
-      <div className="flex-1 p-4 font-mono text-[12px] leading-[1.85]">
+      <div className="flex-1 break-words p-4 font-mono text-[12px] leading-[1.85]">
         {FABLE_SCRIPT.slice(0, progress.line).map((l, i) => (
           <p key={i} className={toneCls2(l)}>
             {l.kind === "cmd" && <span className="mr-2 text-gold">❯</span>}
@@ -132,7 +132,7 @@ export function Fable() {
           lead="每则寓言都与页面讲的真实机制同构 —— 情节的每次转折,映射机制的真实因果,不为故事好看扭曲机制。左边这则《查房》,就是它给「垃圾回收」写的,可以滚动读完。"
         />
 
-        <div className="mt-12 grid gap-8 lg:grid-cols-[7fr_5fr]">
+        <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-[7fr_5fr]">
           {/* 寓言书页:全文可滚动,答案区折叠 —— 与真实图解页同款交互 */}
           <Reveal className="h-full">
             <figure className="relative flex h-full flex-col rotate-[-0.8deg] rounded-2xl bg-gradient-to-b from-[#e7dcc4] to-[#d9cba9] text-ink-900 shadow-frame transition-transform hover:rotate-0">

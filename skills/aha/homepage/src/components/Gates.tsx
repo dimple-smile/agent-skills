@@ -19,7 +19,7 @@ export function Gates() {
   return (
     <section id="gates" className="scroll-mt-24 border-t border-line/30 py-24 md:py-32">
       <div className="mx-auto max-w-6xl px-5">
-        <div className="grid gap-14 lg:grid-cols-[4fr_8fr]">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[4fr_8fr]">
           <div className="lg:sticky lg:top-28 lg:self-start">
             <SectionHead
               n="07"
