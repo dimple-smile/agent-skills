@@ -1,25 +1,11 @@
 import { startSphere, type SphereRendererOptions } from "./render-sphere";
-
 export type MsgSphereExpressionName = "surprised" | "skeptical";
 export type MsgSphereExpression = MsgSphereExpressionName | 0 | 1;
 
 export interface MsgSphereOptions {
-  /**
-   * Click the sphere to toggle expression.
-   * @default false
-   */
   clickToReact?: boolean;
-  /**
-   * Auto-toggle expression after idle.
-   * @default false
-   */
   idleSwitch?: boolean;
-  /**
-   * Idle duration in ms when idleSwitch is enabled.
-   * @default 8000
-   */
   idleSwitchMs?: number;
-  /** Initial expression. @default "surprised" / 0 */
   expression?: MsgSphereExpression;
   onReady?: () => void;
   onError?: (error: unknown) => void;
@@ -27,6 +13,8 @@ export interface MsgSphereOptions {
     expression: 0 | 1,
     name: MsgSphereExpressionName,
   ) => void;
+  /** 词轨道覆盖层(透传给 startSphere 的 SphereRendererOptions.wordOverlay) */
+  wordOverlay?: SphereRendererOptions["wordOverlay"];
 }
 
 export interface MsgSphere {
@@ -36,6 +24,8 @@ export interface MsgSphere {
   getExpressionName(): MsgSphereExpressionName;
   /** Set expression, or toggle when called with no argument. */
   changeExpression(expression?: MsgSphereExpression): void;
+  /** 标记词轨道脏:下一次渲染 tick 会整帧重画球体+词 */
+  requestWordRedraw(): void;
   dispose(): void;
 }
 
@@ -98,6 +88,7 @@ export function createMsgSphere(
     onExpressionChange(expression) {
       options.onExpressionChange?.(expression, expressionName(expression));
     },
+    wordOverlay: options.wordOverlay,
   };
 
   const renderer = startSphere(canvas, rendererOptions);
@@ -117,6 +108,9 @@ export function createMsgSphere(
         return;
       }
       renderer.setExpression(expressionIndex(expression));
+    },
+    requestWordRedraw() {
+      renderer.requestWordRedraw();
     },
     dispose() {
       renderer.dispose();

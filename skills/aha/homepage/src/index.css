@@ -116,7 +116,9 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: goldflow 6s ease-in-out infinite;
+  /* 流光仅入场 2 轮:background-position 动画每帧重栅格化文本(实测 +16pp CPU),
+     入场后停在起始渐变,质感保留、常驻成本归零 */
+
 }
 @keyframes goldflow {
   from {
@@ -200,27 +202,34 @@ body {
   background: radial-gradient(120% 100% at 50% 42%, transparent 55%, rgba(5, 4, 3, 0.5) 100%);
 }
 
-/* logo 的 ? / ! 周期轮换 + hover 打断:全部用动画驱动,衔接帧两端对齐 ——
-   空闲循环的 0% 帧 = hover 结束态;hover 一次性动画的 from 帧 = 空闲态 */
+/* logo ?/! 周期轮换 —— 性能配方:动画只驱动 opacity(合成器友好),
+   旋转用静态基态表达(? 左倾 / ! 右倾),元素独立合成层(will-change + contain)。
+   实测:transform 关键帧或无独立层 = +6~10pp CPU;opacity + 独立层 ≈ 0。 */
+.aha-mark {
+  /* will-change 独立合成层:opacity 动画只重合成该小层。
+     注意不能用 contain: strict —— size containment 会把 auto 尺寸的
+     absolute span 塌缩成 0×0(实测隐形)。 */
+  will-change: opacity;
+}
+.aha-mark-q { transform: rotate(-12deg); }
+.aha-mark-e { transform: rotate(12deg); }
+.aha-mark-q { animation: aha-cycle-q 3.6s steps(1, jump-none) infinite; }
+.aha-mark-e { animation: aha-cycle-e 3.6s steps(1, jump-none) -1.8s infinite; }
 @keyframes aha-cycle-q {
-  0%   { opacity: 0; transform: rotate(-12deg) scale(0.6); }
-  12%  { opacity: 1; transform: rotate(-12deg) scale(1); }
-  38%  { opacity: 1; transform: rotate(-12deg) scale(1); }
-  50%  { opacity: 0; transform: rotate(-12deg) scale(0.6); }
-  100% { opacity: 0; transform: rotate(-12deg) scale(0.6); }
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  38%  { opacity: 1; }
+  50%  { opacity: 0; }
+  100% { opacity: 0; }
 }
 @keyframes aha-cycle-e {
-  0%   { opacity: 1; transform: rotate(12deg) scale(1); }
-  38%  { opacity: 1; transform: rotate(12deg) scale(1); }
-  50%  { opacity: 0; transform: rotate(12deg) scale(0.6); }
-  84%  { opacity: 0; transform: rotate(12deg) scale(0.6); }
-  100% { opacity: 1; transform: rotate(12deg) scale(1); }
+  0%   { opacity: 1; }
+  38%  { opacity: 1; }
+  50%  { opacity: 0; }
+  84%  { opacity: 0; }
+  100% { opacity: 1; }
 }
-.aha-mark { will-change: opacity, transform; }
-.aha-mark-q { animation: aha-cycle-q 3.6s ease-in-out infinite; }
-.aha-mark-e { animation: aha-cycle-e 3.6s ease-in-out -1.8s infinite; }
-/* hover:直接切换到「叹号常亮」。不用一次性动画 —— keyframe 的 from 帧
-   与循环当前帧不衔接,会让已是叹号时先闪一下问号 */
+/* hover:直接切换到「叹号常亮」(transform 仅 hover 瞬间变化) */
 .wordmark:hover .aha-mark-q { animation: none; opacity: 0; }
 .wordmark:hover .aha-mark-e { animation: none; opacity: 1; transform: rotate(14deg) scale(1.18); }
 .aha-mark-q, .aha-mark-e { transition: opacity 0.18s ease; }
@@ -228,6 +237,8 @@ body {
   .aha-mark { animation: none; }
   .aha-mark-e { opacity: 0; }
   .wordmark:hover .aha-mark-e { opacity: 1; }
+  .marquee-track { animation-play-state: paused; }
+  .caret { animation: none; }
 }
 
 /* 扇形卡组入场:从右侧弧线转进来(只在挂载时播一次) */
@@ -240,4 +251,22 @@ body {
 }
 .aha-card-in {
   animation: aha-card-in 400ms ease-out both;
+}
+
+/* 静止态顿悟球呼吸:shader 冻结时由独立遮罩层脉动承担(不在 canvas 上,
+   否则合成器每帧重排 WebGPU 大层)。参数对着色器呼吸(1.8% 亮度、7.7s)。
+   遮罩本身是覆盖球体区域的柔和金光,呼吸时透明度 0↔0.05。 */
+.sphere-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(26% 34% at 50% 59%, rgba(255, 190, 90, 0.9), transparent 68%);
+}
+.sphere-idle .sphere-veil {
+  animation: sphere-veil-breathe 7.7s ease-in-out infinite;
+}
+@keyframes sphere-veil-breathe {
+  0%, 100% { opacity: 0.012; }
+  50% { opacity: 0.055; }
 }

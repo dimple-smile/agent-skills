@@ -19,3 +19,4 @@ skills/dev-log/dist/*
 # npm pack tarballs
 *.tgz
 skills/aha/bench/
+.video_agent/

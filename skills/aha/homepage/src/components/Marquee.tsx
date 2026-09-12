@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 /** 真实书架里的 16 个概念,上下两行交错跑马灯;名词可点 → 三步弹窗 */
 const CONCEPTS = [
   "傅里叶变换",
@@ -56,7 +57,29 @@ function Track({
   );
 }
 
+/** 视口外挂起跑马灯:transform 动画是纯合成器,但 60fps 常驻合成提交;
+ *  首屏(100svh)时跑马灯在折叠线下方,挂起即省。 */
+function usePauseOffscreen<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        el.querySelectorAll<HTMLElement>(".marquee-track").forEach((t) => {
+          t.style.animationPlayState = e.isIntersecting ? "" : "paused"; // 空串释放内联,保住 :hover 暂停
+        });
+      },
+      { threshold: 0.02 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
 export function Marquee({ onConcept }: { onConcept: (c: string) => void }) {
+  const pauseRef = usePauseOffscreen<HTMLDivElement>();
   // 两行各领一半词(奇偶分),互不重复;×4 保证无缝循环宽度
   const evens = CONCEPTS.filter((_, i) => i % 2 === 0);
   const odds = CONCEPTS.filter((_, i) => i % 2 === 1);
@@ -64,7 +87,7 @@ export function Marquee({ onConcept }: { onConcept: (c: string) => void }) {
   const rowB = [...odds, ...odds, ...odds, ...odds];
 
   return (
-    <div className="relative overflow-hidden border-y border-line/40 bg-ink-950/40 py-4">
+    <div ref={pauseRef} className="relative overflow-hidden border-y border-line/40 bg-ink-950/40 py-4">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-ink-900 to-transparent"
