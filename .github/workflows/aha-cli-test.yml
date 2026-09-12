@@ -27,7 +27,8 @@ jobs:
           node-version: ${{ matrix.node }}
       # 显式列出测试文件:node 22 的 --test 收目录参数会当模块路径解析
       # (MODULE_NOT_FOUND 回归,18/26 正常);glob 在 pwsh 下不展开 —— 列表全版本全 shell 通吃
-      - run: node --test test/check.test.mjs test/cli.test.mjs test/home.test.mjs test/serve.test.mjs test/share.test.mjs
+      # tee 进 step summary:Actions 日志匿名不可读,summary 页面公开,失败细节零认证可查
+      - run: node --test test/check.test.mjs test/cli.test.mjs test/home.test.mjs test/serve.test.mjs test/share.test.mjs 2>&1 | tee "$GITHUB_STEP_SUMMARY"
 
   # Windows 端到端:subst 造一个 D: 盘,跑首次引导 → 迁移 → 留守全链路
   windows-e2e:
@@ -53,4 +54,4 @@ jobs:
         shell: bash
         env:
           AHA_TEST_HOME: C:\aha-test-home
-        run: node test/windows-e2e.mjs
+        run: node test/windows-e2e.mjs 2>&1 | tee "$GITHUB_STEP_SUMMARY"
